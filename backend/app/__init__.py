@@ -1,0 +1,1 @@
+"""NEXXA backend application package."""
