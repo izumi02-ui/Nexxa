@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api.health import router as health_router
+from app.api.router import api_router
 from app.config import get_settings
 from app.environment import get_environment
 from app.logging_config import configure_logging, get_logger
@@ -20,10 +20,7 @@ app = FastAPI(
     debug=environment.debug,
 )
 
-app.include_router(
-    health_router,
-    prefix="/api/v1",
-)
+app.include_router(api_router)
 
 
 @app.get("/")
