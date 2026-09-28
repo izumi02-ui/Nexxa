@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.health import router as health_router
 from app.config import get_settings
 from app.environment import get_environment
 from app.logging_config import configure_logging, get_logger
@@ -17,6 +18,11 @@ app = FastAPI(
     description="Backend API for NEXXA, a cross-platform music application.",
     version=settings.app_version,
     debug=environment.debug,
+)
+
+app.include_router(
+    health_router,
+    prefix="/api/v1",
 )
 
 
