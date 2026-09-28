@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+
 app = FastAPI(
     title="NEXXA API",
     description="Backend API for NEXXA, a cross-platform music application.",
