@@ -1,0 +1,5 @@
+Alembic migration environment for NEXXA.
+
+Database migrations are generated and applied from the backend project.
+
+No application database tables are defined in the initial migration environment.
