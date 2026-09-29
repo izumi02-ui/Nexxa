@@ -5,7 +5,7 @@ from app.providers.types import ProviderName, ProviderTrack
 
 @dataclass(frozen=True)
 class NormalizedTrackMetadata:
-    """Provider-independent metadata for a NEXXA track."""
+    """Provider-independent normalized track metadata."""
 
     title: str
     artist_name: str
@@ -24,8 +24,6 @@ class MetadataNormalizationError(ValueError):
 def normalize_track_metadata(
     track: ProviderTrack,
 ) -> NormalizedTrackMetadata:
-    """Convert provider track data into normalized NEXXA metadata."""
-
     title = track.title.strip()
     artist_name = track.artist_name.strip()
 
@@ -39,7 +37,9 @@ def normalize_track_metadata(
             "Track artist cannot be empty."
         )
 
-    if not track.external_id.strip():
+    external_id = track.external_id.strip()
+
+    if not external_id:
         raise MetadataNormalizationError(
             "Track external ID cannot be empty."
         )
@@ -55,6 +55,12 @@ def normalize_track_metadata(
         else None
     )
 
+    artwork_url = (
+        track.artwork_url.strip()
+        if track.artwork_url and track.artwork_url.strip()
+        else None
+    )
+
     external_url = (
         track.external_url.strip()
         if track.external_url and track.external_url.strip()
@@ -66,8 +72,8 @@ def normalize_track_metadata(
         artist_name=artist_name,
         album_name=album_name,
         duration_ms=track.duration_ms,
-        artwork_url=None,
+        artwork_url=artwork_url,
         provider=track.provider,
-        external_id=track.external_id.strip(),
+        external_id=external_id,
         external_url=external_url,
     )
