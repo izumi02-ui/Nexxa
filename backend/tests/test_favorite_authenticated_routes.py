@@ -7,7 +7,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.api.router import api_router
-from app.auth.dependencies import get_current_user
 from app.auth.models import User
 from app.auth.security import create_access_token
 from app.database.base import Base
@@ -29,6 +28,8 @@ def test_app() -> Generator[FastAPI, None, None]:
         db.add(user)
         db.commit()
         db.refresh(user)
+
+        user_id = user.id
 
         def override_get_db() -> Generator[Session, None, None]:
             yield db
