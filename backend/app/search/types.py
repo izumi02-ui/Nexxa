@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from app.providers.types import ProviderName
+from app.providers.types import ProviderTrack
 
 
 @dataclass(frozen=True)
@@ -14,12 +14,9 @@ class SearchQuery:
 
 @dataclass(frozen=True)
 class SearchResult:
-    """Normalized search result from a music provider."""
+    """Normalized search response."""
 
-    provider: ProviderName
-    external_id: str
-    title: str
-    artist_name: str
-    album_name: str | None = None
-    duration_ms: int | None = None
-    external_url: str | None = None
+    tracks: list[ProviderTrack]
+    total: int
+    offset: int
+    limit: int
