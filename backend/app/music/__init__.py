@@ -1,0 +1,1 @@
+"""NEXXA core music domain package."""
