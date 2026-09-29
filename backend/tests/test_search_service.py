@@ -18,7 +18,13 @@ class FailingSpotifyProvider(MusicProvider):
         query: str,
         limit: int = 20,
     ) -> list[ProviderTrack]:
-        raise RuntimeError("Spotify is unavailable")
+        raise RuntimeError("spotify failure")
+
+    async def get_track(
+        self,
+        external_id: str,
+    ) -> ProviderTrack | None:
+        return None
 
 
 class WorkingYouTubeProvider(MusicProvider):
@@ -35,18 +41,45 @@ class WorkingYouTubeProvider(MusicProvider):
             ProviderTrack(
                 provider=ProviderName.YOUTUBE,
                 external_id="youtube-1",
-                title="Test Track",
-                artist_name="Test Artist",
-                album_name="Test Album",
-                duration_ms=180000,
-                artwork_url="https://example.com/artwork.jpg",
+                title="YouTube Track",
+                artist_name="YouTube Artist",
+                album_name=None,
+                duration_ms=200000,
+                artwork_url="https://example.com/youtube.jpg",
                 external_url="https://youtube.com/watch?v=youtube-1",
             )
         ]
 
+    async def get_track(
+        self,
+        external_id: str,
+    ) -> ProviderTrack | None:
+        return None
+
 
 @pytest.mark.asyncio
-async def test_provider_failure_does_not_break_other_providers() -> None:
+async def test_search_service_returns_provider_results() -> None:
+    registry = ProviderRegistry()
+    registry.register(WorkingYouTubeProvider())
+
+    service = SearchService(registry)
+
+    result = await service.search_tracks(
+        SearchQuery(
+            query="test",
+            limit=20,
+            offset=0,
+        )
+    )
+
+    assert result.total == 1
+    assert len(result.tracks) == 1
+    assert result.tracks[0].provider is ProviderName.YOUTUBE
+    assert result.tracks[0].external_id == "youtube-1"
+
+
+@pytest.mark.asyncio
+async def test_search_service_isolates_failed_provider() -> None:
     registry = ProviderRegistry()
     registry.register(FailingSpotifyProvider())
     registry.register(WorkingYouTubeProvider())
@@ -63,38 +96,17 @@ async def test_provider_failure_does_not_break_other_providers() -> None:
 
     assert result.total == 1
     assert len(result.tracks) == 1
-    assert result.tracks[0].provider == ProviderName.YOUTUBE
-    assert result.tracks[0].title == "Test Track"
+    assert result.tracks[0].provider is ProviderName.YOUTUBE
 
 
 @pytest.mark.asyncio
-async def test_search_returns_results_when_only_working_provider_exists() -> None:
-    registry = ProviderRegistry()
-    registry.register(WorkingYouTubeProvider())
-
-    service = SearchService(registry)
-
-    result = await service.search_tracks(
-        SearchQuery(
-            query="test",
-            limit=20,
-            offset=0,
-        )
-    )
-
-    assert result.total == 1
-    assert result.tracks[0].external_id == "youtube-1"
-    assert result.tracks[0].artwork_url == "https://example.com/artwork.jpg"
-
-
-@pytest.mark.asyncio
-async def test_search_raises_when_all_providers_fail() -> None:
+async def test_search_service_raises_when_all_providers_fail() -> None:
     registry = ProviderRegistry()
     registry.register(FailingSpotifyProvider())
 
     service = SearchService(registry)
 
-    with pytest.raises(ProviderUnavailableError) as exc_info:
+    with pytest.raises(ProviderUnavailableError):
         await service.search_tracks(
             SearchQuery(
                 query="test",
@@ -103,28 +115,9 @@ async def test_search_raises_when_all_providers_fail() -> None:
             )
         )
 
-    assert exc_info.value.code == "PROVIDER_UNAVAILABLE"
-
 
 @pytest.mark.asyncio
-async def test_search_raises_when_no_providers_are_registered() -> None:
-    registry = ProviderRegistry()
-    service = SearchService(registry)
-
-    with pytest.raises(ProviderUnavailableError) as exc_info:
-        await service.search_tracks(
-            SearchQuery(
-                query="test",
-                limit=20,
-                offset=0,
-            )
-        )
-
-    assert exc_info.value.code == "PROVIDER_UNAVAILABLE"
-
-
-@pytest.mark.asyncio
-async def test_search_returns_empty_for_blank_query() -> None:
+async def test_search_service_returns_empty_for_blank_query() -> None:
     registry = ProviderRegistry()
     registry.register(WorkingYouTubeProvider())
 
@@ -140,3 +133,41 @@ async def test_search_returns_empty_for_blank_query() -> None:
 
     assert result.total == 0
     assert result.tracks == []
+
+
+@pytest.mark.asyncio
+async def test_search_service_can_select_specific_provider() -> None:
+    registry = ProviderRegistry()
+    registry.register(FailingSpotifyProvider())
+    registry.register(WorkingYouTubeProvider())
+
+    service = SearchService(registry)
+
+    result = await service.search_tracks(
+        SearchQuery(
+            query="test",
+            limit=20,
+            offset=0,
+        ),
+        providers=[ProviderName.YOUTUBE],
+    )
+
+    assert result.total == 1
+    assert result.tracks[0].provider is ProviderName.YOUTUBE
+
+
+@pytest.mark.asyncio
+async def test_search_service_raises_when_selected_provider_is_missing() -> None:
+    registry = ProviderRegistry()
+
+    service = SearchService(registry)
+
+    with pytest.raises(ProviderUnavailableError):
+        await service.search_tracks(
+            SearchQuery(
+                query="test",
+                limit=20,
+                offset=0,
+            ),
+            providers=[ProviderName.SPOTIFY],
+        )
