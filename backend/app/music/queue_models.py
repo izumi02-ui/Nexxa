@@ -9,7 +9,7 @@ from app.database.base import Base
 class Queue(Base):
     """Persistent playback queue for a NEXXA user."""
 
-    __tablename__ = "queues"
+    __tablename__ = "queue"
 
     __table_args__ = (
         UniqueConstraint(
