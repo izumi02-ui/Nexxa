@@ -20,11 +20,10 @@ async def nexxa_error_handler(
 
 
 def _status_code_for_error(code: str) -> int:
-    status_codes = {
+    return {
         "NOT_FOUND": 404,
         "VALIDATION_ERROR": 400,
         "AUTHENTICATION_REQUIRED": 401,
         "FORBIDDEN": 403,
-    }
-
-    return status_codes.get(code, 400)
+        "PROVIDER_UNAVAILABLE": 503,
+    }.get(code, 400)
