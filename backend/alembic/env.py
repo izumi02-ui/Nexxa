@@ -11,6 +11,7 @@ from app.database.base import Base
 from app.auth.models import User
 from app.music.album_models import Album
 from app.music.artist_models import Artist
+from app.music.favorite_models import Favorite
 from app.music.models import Track
 from app.music.playback_models import PlaybackState
 from app.music.playlist_models import Playlist, PlaylistTrack
