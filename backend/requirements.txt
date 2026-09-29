@@ -1,5 +1,5 @@
 fastapi
-uvicorn[standard]
+uvicorn
 sqlalchemy
 alembic
 psycopg[binary]
@@ -7,4 +7,5 @@ pydantic-settings
 email-validator
 pwdlib[argon2]
 pytest
+pytest-asyncio
 httpx
