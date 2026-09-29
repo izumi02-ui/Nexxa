@@ -11,10 +11,13 @@ class ProviderName(str, Enum):
 
 @dataclass(frozen=True)
 class ProviderTrack:
+    """Normalized track representation shared by all providers."""
+
     provider: ProviderName
     external_id: str
     title: str
     artist_name: str
-    album_name: str | None = None
-    duration_ms: int | None = None
-    external_url: str | None = None
+    album_name: str | None
+    duration_ms: int | None
+    artwork_url: str | None
+    external_url: str | None
