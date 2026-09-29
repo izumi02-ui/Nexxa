@@ -19,23 +19,15 @@ class FakeSpotifyProvider(MusicProvider):
         return [
             ProviderTrack(
                 provider=ProviderName.SPOTIFY,
-                external_id="spotify-test-1",
-                title="Test Song",
+                external_id="spotify-1",
+                title="Test Track",
                 artist_name="Test Artist",
                 album_name="Test Album",
                 duration_ms=180000,
-                artwork_url="https://i.scdn.co/image/test-artwork",
-                external_url=(
-                    "https://open.spotify.com/track/spotify-test-1"
-                ),
+                artwork_url="https://example.com/artwork.jpg",
+                external_url="https://open.spotify.com/track/spotify-1",
             )
         ]
-
-    async def get_track(
-        self,
-        external_id: str,
-    ) -> ProviderTrack | None:
-        return None
 
 
 def make_registry() -> ProviderRegistry:
@@ -50,9 +42,7 @@ def test_search_api_uses_provider_registry() -> None:
 
         response = client.get(
             "/api/v1/search",
-            params={
-                "query": "Test Song",
-            },
+            params={"query": "test"},
         )
 
     assert response.status_code == 200
@@ -62,20 +52,20 @@ def test_search_api_uses_provider_registry() -> None:
     assert data["total"] == 1
     assert data["offset"] == 0
     assert data["limit"] == 20
+    assert len(data["tracks"]) == 1
 
     track = data["tracks"][0]
 
     assert track["provider"] == "spotify"
-    assert track["external_id"] == "spotify-test-1"
-    assert track["title"] == "Test Song"
+    assert track["external_id"] == "spotify-1"
+    assert track["title"] == "Test Track"
     assert track["artist_name"] == "Test Artist"
     assert track["album_name"] == "Test Album"
     assert track["duration_ms"] == 180000
-    assert track["artwork_url"] == (
-        "https://i.scdn.co/image/test-artwork"
-    )
-    assert track["external_url"] == (
-        "https://open.spotify.com/track/spotify-test-1"
+    assert track["artwork_url"] == "https://example.com/artwork.jpg"
+    assert (
+        track["external_url"]
+        == "https://open.spotify.com/track/spotify-1"
     )
 
 
@@ -86,7 +76,7 @@ def test_search_api_accepts_pagination_parameters() -> None:
         response = client.get(
             "/api/v1/search",
             params={
-                "query": "Test Song",
+                "query": "test",
                 "limit": 10,
                 "offset": 5,
             },
@@ -96,8 +86,8 @@ def test_search_api_accepts_pagination_parameters() -> None:
 
     data = response.json()
 
-    assert data["offset"] == 5
     assert data["limit"] == 10
+    assert data["offset"] == 5
 
 
 def test_search_api_rejects_empty_query() -> None:
@@ -106,9 +96,7 @@ def test_search_api_rejects_empty_query() -> None:
 
         response = client.get(
             "/api/v1/search",
-            params={
-                "query": "",
-            },
+            params={"query": ""},
         )
 
     assert response.status_code == 422
@@ -120,22 +108,20 @@ def test_search_api_rejects_query_longer_than_500_characters() -> None:
 
         response = client.get(
             "/api/v1/search",
-            params={
-                "query": "x" * 501,
-            },
+            params={"query": "a" * 501},
         )
 
     assert response.status_code == 422
 
 
-def test_search_api_rejects_invalid_limit() -> None:
+def test_search_api_rejects_zero_limit() -> None:
     with TestClient(app) as client:
         app.state.provider_registry = make_registry()
 
         response = client.get(
             "/api/v1/search",
             params={
-                "query": "Test Song",
+                "query": "test",
                 "limit": 0,
             },
         )
@@ -150,7 +136,7 @@ def test_search_api_rejects_limit_above_50() -> None:
         response = client.get(
             "/api/v1/search",
             params={
-                "query": "Test Song",
+                "query": "test",
                 "limit": 51,
             },
         )
@@ -165,7 +151,7 @@ def test_search_api_rejects_negative_offset() -> None:
         response = client.get(
             "/api/v1/search",
             params={
-                "query": "Test Song",
+                "query": "test",
                 "offset": -1,
             },
         )
@@ -173,22 +159,21 @@ def test_search_api_rejects_negative_offset() -> None:
     assert response.status_code == 422
 
 
-def test_search_api_returns_empty_results_without_providers() -> None:
+def test_search_api_returns_503_without_providers() -> None:
     with TestClient(app) as client:
         app.state.provider_registry = ProviderRegistry()
 
         response = client.get(
             "/api/v1/search",
-            params={
-                "query": "Test Song",
-            },
+            params={"query": "test"},
         )
 
-    assert response.status_code == 200
+    assert response.status_code == 503
 
     data = response.json()
 
-    assert data["tracks"] == []
-    assert data["total"] == 0
-    assert data["offset"] == 0
-    assert data["limit"] == 20
+    assert data["error"]["code"] == "PROVIDER_UNAVAILABLE"
+    assert (
+        data["error"]["message"]
+        == "No music provider is currently available."
+    )
