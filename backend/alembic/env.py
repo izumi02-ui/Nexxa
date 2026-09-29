@@ -6,6 +6,16 @@ from sqlalchemy import engine_from_config, pool
 from app.config import get_settings
 from app.database.base import Base
 
+# Import all SQLAlchemy models so they are registered
+# with Base.metadata before Alembic inspects it.
+from app.auth.models import User
+from app.music.album_models import Album
+from app.music.artist_models import Artist
+from app.music.models import Track
+from app.music.playback_models import PlaybackState
+from app.music.playlist_models import Playlist, PlaylistTrack
+from app.music.queue_models import Queue
+
 
 config = context.config
 
@@ -23,6 +33,8 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
+    """Run migrations without establishing a database connection."""
+
     url = settings.database_url
 
     context.configure(
@@ -37,6 +49,8 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    """Run migrations using an active database connection."""
+
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
