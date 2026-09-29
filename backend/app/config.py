@@ -16,6 +16,10 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
+    auth_secret_key: str = Field(
+        min_length=32,
+    )
+
     spotify_client_id: str | None = None
     spotify_client_secret: str | None = None
 
