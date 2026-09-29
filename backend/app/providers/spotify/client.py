@@ -1,7 +1,11 @@
+import logging
 from dataclasses import dataclass
 from time import monotonic
 
 import httpx
+
+
+logger = logging.getLogger(__name__)
 
 
 SPOTIFY_API_BASE_URL = "https://api.spotify.com/v1"
@@ -67,7 +71,10 @@ class SpotifyClient:
             self._access_token is not None
             and now < self._token_expires_at
         ):
+            logger.debug("Using cached Spotify access token.")
             return self._access_token
+
+        logger.debug("Requesting a new Spotify access token.")
 
         token = await self.get_client_credentials_token()
 
@@ -76,12 +83,16 @@ class SpotifyClient:
             now + max(token.expires_in - 60, 1)
         )
 
+        logger.info("Spotify access token refreshed successfully.")
+
         return self._access_token
 
     async def get_client_credentials_token(
         self,
     ) -> SpotifyToken:
         """Request an application access token from Spotify."""
+
+        logger.debug("Requesting Spotify client-credentials token.")
 
         try:
             async with httpx.AsyncClient() as client:
@@ -97,9 +108,17 @@ class SpotifyClient:
                     timeout=15.0,
                 )
         except httpx.HTTPError as exc:
+            logger.exception(
+                "Spotify token service connection failed."
+            )
             raise SpotifyAPIError(
                 "Unable to connect to Spotify token service."
             ) from exc
+
+        logger.debug(
+            "Spotify token service responded with status %s.",
+            response.status_code,
+        )
 
         self._raise_for_status(
             response,
@@ -109,6 +128,9 @@ class SpotifyClient:
         try:
             data = response.json()
         except ValueError as exc:
+            logger.error(
+                "Spotify token service returned invalid JSON."
+            )
             raise SpotifyAPIError(
                 "Spotify returned invalid token response data."
             ) from exc
@@ -117,14 +139,25 @@ class SpotifyClient:
         expires_in = data.get("expires_in")
 
         if not access_token:
+            logger.error(
+                "Spotify token response did not contain an access token."
+            )
             raise SpotifyAPIError(
                 "Spotify token response is missing an access token."
             )
 
         if not isinstance(expires_in, int) or expires_in <= 0:
+            logger.error(
+                "Spotify token response contained invalid expiration."
+            )
             raise SpotifyAPIError(
                 "Spotify token response contains an invalid expiration."
             )
+
+        logger.debug(
+            "Spotify token received with %s second expiration.",
+            expires_in,
+        )
 
         return SpotifyToken(
             access_token=access_token,
@@ -142,6 +175,7 @@ class SpotifyClient:
         query = query.strip()
 
         if not query:
+            logger.debug("Skipping Spotify search because query is empty.")
             return {
                 "tracks": {
                     "items": [],
@@ -153,6 +187,12 @@ class SpotifyClient:
 
         limit = min(max(limit, 1), 10)
         offset = max(offset, 0)
+
+        logger.debug(
+            "Searching Spotify tracks with limit=%s offset=%s.",
+            limit,
+            offset,
+        )
 
         access_token = await self.get_access_token()
 
@@ -172,9 +212,15 @@ class SpotifyClient:
                     timeout=15.0,
                 )
         except httpx.HTTPError as exc:
+            logger.exception("Spotify search request failed.")
             raise SpotifyAPIError(
                 "Unable to connect to Spotify search service."
             ) from exc
+
+        logger.debug(
+            "Spotify search request completed with status %s.",
+            response.status_code,
+        )
 
         self._raise_for_status(
             response,
@@ -184,6 +230,9 @@ class SpotifyClient:
         try:
             return response.json()
         except ValueError as exc:
+            logger.error(
+                "Spotify search service returned invalid JSON."
+            )
             raise SpotifyAPIError(
                 "Spotify returned invalid search response data."
             ) from exc
@@ -197,9 +246,14 @@ class SpotifyClient:
         external_id = external_id.strip()
 
         if not external_id:
+            logger.debug(
+                "Skipping Spotify track request because track ID is empty."
+            )
             raise SpotifyAPIError(
                 "Spotify track ID cannot be empty."
             )
+
+        logger.debug("Requesting Spotify track metadata.")
 
         access_token = await self.get_access_token()
 
@@ -213,9 +267,15 @@ class SpotifyClient:
                     timeout=15.0,
                 )
         except httpx.HTTPError as exc:
+            logger.exception("Spotify track request failed.")
             raise SpotifyAPIError(
                 "Unable to connect to Spotify track service."
             ) from exc
+
+        logger.debug(
+            "Spotify track request completed with status %s.",
+            response.status_code,
+        )
 
         self._raise_for_status(
             response,
@@ -225,6 +285,9 @@ class SpotifyClient:
         try:
             return response.json()
         except ValueError as exc:
+            logger.error(
+                "Spotify track service returned invalid JSON."
+            )
             raise SpotifyAPIError(
                 "Spotify returned invalid track response data."
             ) from exc
@@ -240,6 +303,12 @@ class SpotifyClient:
 
         if status_code < 400:
             return
+
+        logger.warning(
+            "%s returned Spotify HTTP status %s.",
+            operation,
+            status_code,
+        )
 
         if status_code in (401, 403):
             raise SpotifyAuthenticationError(
@@ -261,7 +330,15 @@ class SpotifyClient:
                 try:
                     retry_after = max(int(value), 0)
                 except ValueError:
+                    logger.warning(
+                        "Spotify returned an invalid Retry-After header."
+                    )
                     retry_after = None
+
+            logger.warning(
+                "Spotify rate limit exceeded; retry_after=%s.",
+                retry_after,
+            )
 
             raise SpotifyRateLimitError(
                 "Spotify rate limit exceeded.",
@@ -269,6 +346,10 @@ class SpotifyClient:
             )
 
         if 500 <= status_code <= 599:
+            logger.error(
+                "Spotify returned a server-side error: %s.",
+                status_code,
+            )
             raise SpotifyServerError(
                 f"{operation} failed because Spotify returned "
                 f"server status {status_code}."
