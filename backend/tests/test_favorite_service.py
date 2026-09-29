@@ -1,11 +1,8 @@
-from datetime import datetime, timezone
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
 from app.database.base import Base
-from app.music.favorite_models import Favorite
 from app.music.favorite_service import (
     create_favorite,
     delete_favorite,
