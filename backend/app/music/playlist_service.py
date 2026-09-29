@@ -154,3 +154,36 @@ def add_track_to_playlist(
     db.flush()
 
     return playlist_track
+
+
+def remove_track_from_playlist(
+    db: Session,
+    user_id: int,
+    playlist_id: int,
+    track_id: int,
+) -> bool:
+    """Remove a track from a playlist owned by a user."""
+
+    playlist = get_playlist(
+        db=db,
+        user_id=user_id,
+        playlist_id=playlist_id,
+    )
+
+    if playlist is None:
+        return False
+
+    playlist_track = db.scalar(
+        select(PlaylistTrack).where(
+            PlaylistTrack.playlist_id == playlist_id,
+            PlaylistTrack.track_id == track_id,
+        )
+    )
+
+    if playlist_track is None:
+        return False
+
+    db.delete(playlist_track)
+    db.flush()
+
+    return True
