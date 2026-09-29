@@ -5,51 +5,35 @@ from pydantic import Field
 from app.validation.common import NEXXABaseModel
 
 
-class PlaylistCreate(NEXXABaseModel):
-    """Validated data required to create a playlist."""
+class PlaybackStateUpdate(NEXXABaseModel):
+    """Validated playback-state update."""
 
-    name: str = Field(
-        min_length=1,
-        max_length=255,
-    )
-
-    description: str | None = None
-
-    artwork_url: str | None = None
-
-    is_public: bool = False
-
-
-class PlaylistResponse(NEXXABaseModel):
-    """API representation of a playlist."""
-
-    id: int
-    user_id: int
-    name: str
-    description: str | None
-    artwork_url: str | None
-    is_public: bool
-    created_at: datetime
-    updated_at: datetime
-
-
-class PlaylistTrackCreate(NEXXABaseModel):
-    """Validated data for adding a track to a playlist."""
-
-    track_id: int = Field(
+    current_track_id: int | None = Field(
+        default=None,
         ge=1,
     )
 
-    position: int = Field(
+    position_ms: int = Field(
+        default=0,
         ge=0,
     )
 
+    volume: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+    )
 
-class PlaylistTrackResponse(NEXXABaseModel):
-    """API representation of playlist membership."""
+    is_playing: bool = False
+
+
+class PlaybackStateResponse(NEXXABaseModel):
+    """API representation of playback state."""
 
     id: int
-    playlist_id: int
-    track_id: int
-    position: int
-    added_at: datetime
+    user_id: int
+    current_track_id: int | None
+    position_ms: int
+    volume: float
+    is_playing: bool
+    updated_at: datetime
