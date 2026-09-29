@@ -26,29 +26,37 @@ class SearchResponse(NEXXABaseModel):
     limit: int
 
 
-@router.get("/search", response_model=SearchResponse)
-async def search(
-    request: Request,
+class SearchRequest(NEXXABaseModel):
     query: str = Field(
         min_length=1,
         max_length=500,
-    ),
+    )
+
     limit: int = Field(
         default=20,
         ge=1,
         le=50,
-    ),
+    )
+
     offset: int = Field(
         default=0,
         ge=0,
-    ),
+    )
+
+
+@router.get("/search", response_model=SearchResponse)
+async def search(
+    request: Request,
+    query: str = "",
+    limit: int = 20,
+    offset: int = 0,
 ) -> SearchResponse:
     """Search registered NEXXA music providers."""
 
     search_query = SearchQuery(
         query=query,
-        limit=limit,
-        offset=offset,
+        limit=min(max(limit, 1), 50),
+        offset=max(offset, 0),
     )
 
     registry = request.app.state.provider_registry
