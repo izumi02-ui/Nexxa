@@ -9,7 +9,7 @@ SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 
 
 class SpotifyAPIError(Exception):
-    """Raised when Spotify returns an API error."""
+    """Raised when a Spotify API operation fails."""
 
 
 @dataclass(frozen=True)
@@ -35,7 +35,7 @@ class SpotifyClient:
         self._token_expires_at: float = 0.0
 
     async def get_access_token(self) -> str:
-        """Return a cached token or request a new one."""
+        """Return a cached access token or request a new one."""
 
         now = monotonic()
 
@@ -48,29 +48,34 @@ class SpotifyClient:
         token = await self.get_client_credentials_token()
 
         self._access_token = token.access_token
-
-        # Refresh slightly before Spotify's reported expiration time.
         self._token_expires_at = (
             now + max(token.expires_in - 60, 1)
         )
 
         return self._access_token
 
-    async def get_client_credentials_token(self) -> SpotifyToken:
+    async def get_client_credentials_token(
+        self,
+    ) -> SpotifyToken:
         """Request an application access token from Spotify."""
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                SPOTIFY_TOKEN_URL,
-                data={
-                    "grant_type": "client_credentials",
-                },
-                auth=(
-                    self.client_id,
-                    self.client_secret,
-                ),
-                timeout=15.0,
-            )
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    SPOTIFY_TOKEN_URL,
+                    data={
+                        "grant_type": "client_credentials",
+                    },
+                    auth=(
+                        self.client_id,
+                        self.client_secret,
+                    ),
+                    timeout=15.0,
+                )
+        except httpx.HTTPError as exc:
+            raise SpotifyAPIError(
+                "Unable to connect to Spotify token service."
+            ) from exc
 
         if response.status_code != 200:
             raise SpotifyAPIError(
@@ -78,14 +83,24 @@ class SpotifyClient:
                 f"{response.status_code}."
             )
 
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError as exc:
+            raise SpotifyAPIError(
+                "Spotify returned invalid token response data."
+            ) from exc
 
         access_token = data.get("access_token")
         expires_in = data.get("expires_in")
 
-        if not access_token or not isinstance(expires_in, int):
+        if not access_token:
             raise SpotifyAPIError(
-                "Spotify returned an invalid access token response."
+                "Spotify token response is missing an access token."
+            )
+
+        if not isinstance(expires_in, int) or expires_in <= 0:
+            raise SpotifyAPIError(
+                "Spotify token response contains an invalid expiration."
             )
 
         return SpotifyToken(
@@ -101,7 +116,9 @@ class SpotifyClient:
     ) -> dict:
         """Search Spotify's catalog for tracks."""
 
-        if not query.strip():
+        query = query.strip()
+
+        if not query:
             return {
                 "tracks": {
                     "items": [],
@@ -116,20 +133,25 @@ class SpotifyClient:
 
         access_token = await self.get_access_token()
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{SPOTIFY_API_BASE_URL}/search",
-                params={
-                    "q": query,
-                    "type": "track",
-                    "limit": limit,
-                    "offset": offset,
-                },
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                },
-                timeout=15.0,
-            )
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{SPOTIFY_API_BASE_URL}/search",
+                    params={
+                        "q": query,
+                        "type": "track",
+                        "limit": limit,
+                        "offset": offset,
+                    },
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                    },
+                    timeout=15.0,
+                )
+        except httpx.HTTPError as exc:
+            raise SpotifyAPIError(
+                "Unable to connect to Spotify search service."
+            ) from exc
 
         if response.status_code != 200:
             raise SpotifyAPIError(
@@ -137,7 +159,12 @@ class SpotifyClient:
                 f"{response.status_code}."
             )
 
-        return response.json()
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise SpotifyAPIError(
+                "Spotify returned invalid search response data."
+            ) from exc
 
     async def get_track(
         self,
@@ -145,16 +172,28 @@ class SpotifyClient:
     ) -> dict:
         """Retrieve one Spotify track by ID."""
 
+        external_id = external_id.strip()
+
+        if not external_id:
+            raise SpotifyAPIError(
+                "Spotify track ID cannot be empty."
+            )
+
         access_token = await self.get_access_token()
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{SPOTIFY_API_BASE_URL}/tracks/{external_id}",
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                },
-                timeout=15.0,
-            )
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{SPOTIFY_API_BASE_URL}/tracks/{external_id}",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                    },
+                    timeout=15.0,
+                )
+        except httpx.HTTPError as exc:
+            raise SpotifyAPIError(
+                "Unable to connect to Spotify track service."
+            ) from exc
 
         if response.status_code != 200:
             raise SpotifyAPIError(
@@ -162,4 +201,9 @@ class SpotifyClient:
                 f"{response.status_code}."
             )
 
-        return response.json()
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise SpotifyAPIError(
+                "Spotify returned invalid track response data."
+            ) from exc
