@@ -124,3 +124,33 @@ def delete_playlist(
     db.flush()
 
     return True
+
+
+def add_track_to_playlist(
+    db: Session,
+    user_id: int,
+    playlist_id: int,
+    track_id: int,
+    position: int,
+) -> PlaylistTrack | None:
+    """Add a track to a playlist owned by a user."""
+
+    playlist = get_playlist(
+        db=db,
+        user_id=user_id,
+        playlist_id=playlist_id,
+    )
+
+    if playlist is None:
+        return None
+
+    playlist_track = PlaylistTrack(
+        playlist_id=playlist_id,
+        track_id=track_id,
+        position=position,
+    )
+
+    db.add(playlist_track)
+    db.flush()
+
+    return playlist_track
