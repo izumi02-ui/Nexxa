@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 from app.api.router import api_router
 from app.auth.models import User
@@ -17,7 +18,14 @@ from app.music.models import Track
 
 @pytest.fixture
 def test_app() -> Generator[FastAPI, None, None]:
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={
+            "check_same_thread": False,
+        },
+        poolclass=StaticPool,
+    )
+
     Base.metadata.create_all(engine)
 
     with Session(engine) as db:
