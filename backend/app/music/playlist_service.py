@@ -187,3 +187,102 @@ def remove_track_from_playlist(
     db.flush()
 
     return True
+
+
+def get_playlist_tracks(
+    db: Session,
+    user_id: int,
+    playlist_id: int,
+) -> list[PlaylistTrack] | None:
+    """Return playlist tracks in their current order."""
+
+    playlist = get_playlist(
+        db=db,
+        user_id=user_id,
+        playlist_id=playlist_id,
+    )
+
+    if playlist is None:
+        return None
+
+    return list(
+        db.scalars(
+            select(PlaylistTrack)
+            .where(
+                PlaylistTrack.playlist_id == playlist_id,
+            )
+            .order_by(
+                PlaylistTrack.position.asc(),
+                PlaylistTrack.id.asc(),
+            )
+        ).all()
+    )
+
+
+def update_playlist_track_position(
+    db: Session,
+    user_id: int,
+    playlist_id: int,
+    track_id: int,
+    position: int,
+) -> PlaylistTrack | None:
+    """Move a playlist track to a new zero-based position."""
+
+    if position < 0:
+        raise ValueError("Playlist track position cannot be negative")
+
+    playlist = get_playlist(
+        db=db,
+        user_id=user_id,
+        playlist_id=playlist_id,
+    )
+
+    if playlist is None:
+        return None
+
+    tracks = list(
+        db.scalars(
+            select(PlaylistTrack)
+            .where(
+                PlaylistTrack.playlist_id == playlist_id,
+            )
+            .order_by(
+                PlaylistTrack.position.asc(),
+                PlaylistTrack.id.asc(),
+            )
+        ).all()
+    )
+
+    target = next(
+        (
+            playlist_track
+            for playlist_track in tracks
+            if playlist_track.track_id == track_id
+        ),
+        None,
+    )
+
+    if target is None:
+        return None
+
+    tracks.remove(target)
+
+    if position > len(tracks):
+        position = len(tracks)
+
+    tracks.insert(position, target)
+
+    # Temporarily move every row away from the final positions
+    # so the unique (playlist_id, position) constraint cannot
+    # collide while the order is being rebuilt.
+    for index, playlist_track in enumerate(tracks):
+        playlist_track.position = -(index + 1)
+
+    db.flush()
+
+    for index, playlist_track in enumerate(tracks):
+        playlist_track.position = index
+
+    db.flush()
+
+    return target
