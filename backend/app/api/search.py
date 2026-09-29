@@ -15,6 +15,7 @@ class SearchResponseTrack(NEXXABaseModel):
     artist_name: str
     album_name: str | None
     duration_ms: int | None
+    artwork_url: str | None
     external_url: str | None
 
 
@@ -25,10 +26,7 @@ class SearchResponse(NEXXABaseModel):
     limit: int
 
 
-@router.get(
-    "/search",
-    response_model=SearchResponse,
-)
+@router.get("/search", response_model=SearchResponse)
 async def search(
     request: Request,
     query: str = Query(
@@ -55,9 +53,7 @@ async def search(
 
     service = SearchService(registry)
 
-    result = await service.search_tracks(
-        search_query,
-    )
+    result = await service.search_tracks(search_query)
 
     return SearchResponse(
         tracks=[
@@ -68,6 +64,7 @@ async def search(
                 artist_name=track.artist_name,
                 album_name=track.album_name,
                 duration_ms=track.duration_ms,
+                artwork_url=track.artwork_url,
                 external_url=track.external_url,
             )
             for track in result.tracks
