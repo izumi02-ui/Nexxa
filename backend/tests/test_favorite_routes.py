@@ -1,22 +1,18 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.database.session import get_db
-from app.music.favorite_routes import (
-    get_current_user_id,
-    router,
-)
+from app.api.router import api_router
 
 
 app = FastAPI()
-app.include_router(router)
+app.include_router(api_router)
 
 
 def test_add_favorite_requires_authentication() -> None:
     client = TestClient(app)
 
     response = client.post(
-        "/favorites",
+        "/api/v1/favorites",
         json={"track_id": 1},
     )
 
@@ -27,7 +23,7 @@ def test_add_favorite_requires_authentication() -> None:
 def test_list_favorites_requires_authentication() -> None:
     client = TestClient(app)
 
-    response = client.get("/favorites")
+    response = client.get("/api/v1/favorites")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Authentication required"
@@ -36,7 +32,7 @@ def test_list_favorites_requires_authentication() -> None:
 def test_delete_favorite_requires_authentication() -> None:
     client = TestClient(app)
 
-    response = client.delete("/favorites/1")
+    response = client.delete("/api/v1/favorites/1")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Authentication required"
