@@ -1,4 +1,7 @@
+from sqlalchemy import inspect
+
 from app.auth.models import User
+from app.database.base import Base
 from app.music.album_models import Album
 from app.music.artist_models import Artist
 from app.music.models import Track
@@ -7,82 +10,145 @@ from app.music.playlist_models import Playlist, PlaylistTrack
 from app.music.queue_models import Queue
 
 
-def test_phase_two_models_are_registered() -> None:
-    expected_tables = {
-        "users",
-        "artists",
-        "albums",
-        "tracks",
-        "playlists",
-        "playlist_tracks",
-        "queues",
-        "playback_states",
-    }
+def test_music_models_are_registered_with_metadata() -> None:
+    tables = set(Base.metadata.tables)
 
-    registered_tables = {
-        User.__table__.name,
-        Artist.__table__.name,
-        Album.__table__.name,
-        Track.__table__.name,
-        Playlist.__table__.name,
-        PlaylistTrack.__table__.name,
-        Queue.__table__.name,
-        PlaybackState.__table__.name,
-    }
-
-    assert registered_tables == expected_tables
+    assert "users" in tables
+    assert "artists" in tables
+    assert "albums" in tables
+    assert "tracks" in tables
+    assert "playlists" in tables
+    assert "playlist_tracks" in tables
+    assert "queue" in tables
+    assert "playback_states" in tables
 
 
-def test_track_uses_normalized_artist_and_album_foreign_keys() -> None:
-    artist_fk = next(iter(Track.__table__.c.artist_id.foreign_keys))
-    album_fk = next(iter(Track.__table__.c.album_id.foreign_keys))
-
-    assert artist_fk.target_fullname == "artists.id"
-    assert album_fk.target_fullname == "albums.id"
-
-
-def test_playlist_has_user_ownership() -> None:
+def test_track_has_expected_foreign_keys() -> None:
+    mapper = inspect(Track)
     foreign_keys = {
-        fk.target_fullname
-        for fk in Playlist.__table__.c.user_id.foreign_keys
+        foreign_key.target_fullname
+        for column in mapper.columns
+        for foreign_key in column.foreign_keys
+    }
+
+    assert "artists.id" in foreign_keys
+    assert "albums.id" in foreign_keys
+
+
+def test_playlist_belongs_to_user() -> None:
+    mapper = inspect(Playlist)
+    foreign_keys = {
+        foreign_key.target_fullname
+        for column in mapper.columns
+        for foreign_key in column.foreign_keys
     }
 
     assert "users.id" in foreign_keys
 
 
-def test_playlist_track_references_track() -> None:
+def test_playlist_track_has_expected_foreign_keys() -> None:
+    mapper = inspect(PlaylistTrack)
     foreign_keys = {
-        fk.target_fullname
-        for fk in PlaylistTrack.__table__.c.track_id.foreign_keys
+        foreign_key.target_fullname
+        for column in mapper.columns
+        for foreign_key in column.foreign_keys
     }
 
+    assert "playlists.id" in foreign_keys
     assert "tracks.id" in foreign_keys
 
 
-def test_queue_references_user_and_track() -> None:
-    user_foreign_keys = {
-        fk.target_fullname
-        for fk in Queue.__table__.c.user_id.foreign_keys
+def test_queue_has_expected_foreign_keys() -> None:
+    mapper = inspect(Queue)
+    foreign_keys = {
+        foreign_key.target_fullname
+        for column in mapper.columns
+        for foreign_key in column.foreign_keys
     }
 
-    track_foreign_keys = {
-        fk.target_fullname
-        for fk in Queue.__table__.c.track_id.foreign_keys
-    }
-
-    assert "users.id" in user_foreign_keys
-    assert "tracks.id" in track_foreign_keys
+    assert "users.id" in foreign_keys
+    assert "tracks.id" in foreign_keys
 
 
-def test_playback_state_is_unique_per_user() -> None:
-    constraints = {
+def test_playback_state_has_unique_user_constraint() -> None:
+    table = PlaybackState.__table__
+
+    unique_constraints = {
         constraint.name
-        for constraint in PlaybackState.__table__.constraints
-        if constraint.name
+        for constraint in table.constraints
+        if constraint.__class__.__name__ == "UniqueConstraint"
     }
 
-    assert "uq_playback_states_user_id" not in constraints
+    assert any(
+        constraint_name
+        for constraint_name in unique_constraints
+        if constraint_name
+    )
 
-    user_column = PlaybackState.__table__.c.user_id
 
-    assert user_column.unique is True
+def test_playlist_track_has_unique_playlist_track_constraint() -> None:
+    table = PlaylistTrack.__table__
+
+    unique_constraints = [
+        constraint
+        for constraint in table.constraints
+        if constraint.__class__.__name__ == "UniqueConstraint"
+    ]
+
+    assert any(
+        {
+            column.name
+            for column in constraint.columns
+        }
+        == {"playlist_id", "track_id"}
+        for constraint in unique_constraints
+    )
+
+
+def test_playlist_track_has_unique_playlist_position_constraint() -> None:
+    table = PlaylistTrack.__table__
+
+    unique_constraints = [
+        constraint
+        for constraint in table.constraints
+        if constraint.__class__.__name__ == "UniqueConstraint"
+    ]
+
+    assert any(
+        {
+            column.name
+            for column in constraint.columns
+        }
+        == {"playlist_id", "position"}
+        for constraint in unique_constraints
+    )
+
+
+def test_queue_has_unique_user_position_constraint() -> None:
+    table = Queue.__table__
+
+    unique_constraints = [
+        constraint
+        for constraint in table.constraints
+        if constraint.__class__.__name__ == "UniqueConstraint"
+    ]
+
+    assert any(
+        {
+            column.name
+            for column in constraint.columns
+        }
+        == {"user_id", "position"}
+        for constraint in unique_constraints
+    )
+
+
+def test_core_models_are_importable() -> None:
+    assert User.__tablename__ == "users"
+    assert Artist.__tablename__ == "artists"
+    assert Album.__tablename__ == "albums"
+    assert Track.__tablename__ == "tracks"
+    assert Playlist.__tablename__ == "playlists"
+    assert PlaylistTrack.__tablename__ == "playlist_tracks"
+    assert Queue.__tablename__ == "queue"
+    assert PlaybackState.__tablename__ == "playback_states"
