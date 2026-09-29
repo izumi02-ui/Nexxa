@@ -56,7 +56,7 @@
 ## Phase 4 — Library
 
 - [x] favorites
-- [ ] playlists
+- [x] playlists
 - [ ] history
 - [ ] albums
 - [ ] artists
