@@ -1,15 +1,16 @@
 from abc import ABC, abstractmethod
 
-from app.search.types import SearchQuery, SearchResult
+from app.providers.types import ProviderTrack
 
 
 class SearchProvider(ABC):
-    """Interface for provider-independent music search."""
+    """Provider interface for NEXXA search operations."""
 
     @abstractmethod
-    async def search(
+    async def search_tracks(
         self,
-        search_query: SearchQuery,
-    ) -> list[SearchResult]:
-        """Search for music using a normalized query."""
+        query: str,
+        limit: int = 20,
+    ) -> list[ProviderTrack]:
+        """Search for tracks using a provider."""
         raise NotImplementedError
