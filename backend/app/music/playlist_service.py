@@ -1,4 +1,5 @@
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.music.playlist_models import Playlist, PlaylistTrack
@@ -133,7 +134,14 @@ def add_track_to_playlist(
     track_id: int,
     position: int,
 ) -> PlaylistTrack | None:
-    """Add a track to a playlist owned by a user."""
+    """Add a track to a playlist owned by a user.
+
+    If the track is already present in the playlist, return the
+    existing playlist-track record instead of creating a duplicate.
+    """
+
+    if position < 0:
+        raise ValueError("Playlist track position cannot be negative")
 
     playlist = get_playlist(
         db=db,
@@ -144,14 +152,38 @@ def add_track_to_playlist(
     if playlist is None:
         return None
 
+    existing = db.scalar(
+        select(PlaylistTrack).where(
+            PlaylistTrack.playlist_id == playlist_id,
+            PlaylistTrack.track_id == track_id,
+        )
+    )
+
+    if existing is not None:
+        return existing
+
     playlist_track = PlaylistTrack(
         playlist_id=playlist_id,
         track_id=track_id,
         position=position,
     )
 
-    db.add(playlist_track)
-    db.flush()
+    try:
+        with db.begin_nested():
+            db.add(playlist_track)
+            db.flush()
+    except IntegrityError:
+        existing = db.scalar(
+            select(PlaylistTrack).where(
+                PlaylistTrack.playlist_id == playlist_id,
+                PlaylistTrack.track_id == track_id,
+            )
+        )
+
+        if existing is None:
+            raise
+
+        return existing
 
     return playlist_track
 
@@ -272,9 +304,6 @@ def update_playlist_track_position(
 
     tracks.insert(position, target)
 
-    # Temporarily move every row away from the final positions
-    # so the unique (playlist_id, position) constraint cannot
-    # collide while the order is being rebuilt.
     for index, playlist_track in enumerate(tracks):
         playlist_track.position = -(index + 1)
 
