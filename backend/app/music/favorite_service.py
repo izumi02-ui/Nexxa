@@ -57,7 +57,10 @@ def list_favorites(
         db.scalars(
             select(Favorite)
             .where(Favorite.user_id == user_id)
-            .order_by(Favorite.created_at.desc(), Favorite.id.desc())
+            .order_by(
+                Favorite.created_at.desc(),
+                Favorite.id.desc(),
+            )
         ).all()
     )
 
