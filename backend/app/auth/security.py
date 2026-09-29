@@ -1,6 +1,11 @@
+from datetime import datetime, timedelta, timezone
+
 import jwt
 
 from app.config import get_settings
+
+
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
 def create_access_token(user_id: int) -> str:
@@ -8,8 +13,15 @@ def create_access_token(user_id: int) -> str:
 
     settings = get_settings()
 
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(
+        minutes=ACCESS_TOKEN_EXPIRE_MINUTES,
+    )
+
     payload = {
         "sub": str(user_id),
+        "iat": now,
+        "exp": expires_at,
     }
 
     return jwt.encode(
@@ -38,4 +50,6 @@ def decode_access_token(token: str) -> int:
     try:
         return int(user_id)
     except (TypeError, ValueError) as exc:
-        raise ValueError("Access token contains invalid subject") from exc
+        raise ValueError(
+            "Access token contains invalid subject"
+        ) from exc
