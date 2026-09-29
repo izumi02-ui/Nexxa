@@ -67,3 +67,12 @@ async def test_provider_registry_skips_spotify_without_client_secret() -> None:
     registry = await create_provider_registry(settings)
 
     assert registry.get(ProviderName.SPOTIFY) is None
+
+
+@pytest.mark.asyncio
+async def test_provider_registry_skips_youtube_music_without_documented_api_key() -> None:
+    settings = make_settings()
+
+    registry = await create_provider_registry(settings)
+
+    assert registry.get(ProviderName.YOUTUBE_MUSIC) is None
