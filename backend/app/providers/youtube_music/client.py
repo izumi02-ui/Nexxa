@@ -16,25 +16,46 @@ class YouTubeMusicClient:
         query: str,
         limit: int = 20,
     ) -> list[dict]:
-        """Search YouTube content for music-oriented results."""
+        """Search YouTube for music-oriented results with pagination."""
 
-        videos, _ = await self.youtube_client.search_videos(
-            query=query,
-            limit=limit,
-        )
+        remaining = max(0, limit)
 
-        return [
-            {
-                "external_id": video.video_id,
-                "title": video.title,
-                "artist_name": video.channel_name,
-                "album_name": None,
-                "duration_ms": None,
-                "artwork_url": video.thumbnail_url,
-                "external_url": video.url,
-            }
-            for video in videos
-        ]
+        if remaining == 0:
+            return []
+
+        tracks: list[dict] = []
+        page_token: str | None = None
+
+        while remaining > 0:
+            request_limit = min(remaining, 50)
+
+            videos, next_page_token = await self.youtube_client.search_videos(
+                query=query,
+                limit=request_limit,
+                page_token=page_token,
+            )
+
+            for video in videos:
+                tracks.append(
+                    {
+                        "external_id": video.video_id,
+                        "title": video.title,
+                        "artist_name": video.channel_name,
+                        "album_name": None,
+                        "duration_ms": None,
+                        "artwork_url": video.thumbnail_url,
+                        "external_url": video.url,
+                    }
+                )
+
+            remaining = limit - len(tracks)
+
+            if remaining <= 0 or not next_page_token:
+                break
+
+            page_token = next_page_token
+
+        return tracks[:limit]
 
     async def get_track(
         self,
