@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import Field
 
 from app.validation.common import NEXXABaseModel
@@ -18,10 +20,7 @@ class AlbumCreate(NEXXABaseModel):
 
     artwork_url: str | None = None
 
-    release_date: str | None = Field(
-        default=None,
-        max_length=50,
-    )
+    release_date: datetime | None = None
 
 
 class AlbumResponse(NEXXABaseModel):
@@ -31,4 +30,4 @@ class AlbumResponse(NEXXABaseModel):
     title: str
     artist_id: int | None
     artwork_url: str | None
-    release_date: str | None
+    release_date: datetime | None
