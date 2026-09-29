@@ -1,9 +1,9 @@
 import logging
 
+from app.errors.exceptions import ProviderUnavailableError
 from app.providers.registry import ProviderRegistry
 from app.providers.types import ProviderName, ProviderTrack
 from app.search.types import SearchQuery, SearchResult
-
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +35,22 @@ class SearchService:
             else [provider.name for provider in self.registry.all()]
         )
 
+        if not selected_providers:
+            raise ProviderUnavailableError()
+
         collected: list[ProviderTrack] = []
+        successful_providers = 0
+        failed_providers: list[ProviderName] = []
 
         for provider_name in selected_providers:
             provider = self.registry.get(provider_name)
 
             if provider is None:
+                failed_providers.append(provider_name)
+                logger.warning(
+                    "Requested provider is not registered: %s",
+                    provider_name.value,
+                )
                 continue
 
             try:
@@ -49,16 +59,22 @@ class SearchService:
                     limit=search.limit,
                 )
             except Exception:
+                failed_providers.append(provider_name)
                 logger.exception(
                     "Provider search failed: %s",
                     provider_name.value,
                 )
                 continue
 
+            successful_providers += 1
             collected.extend(results)
 
-        total = len(collected)
+        if successful_providers == 0:
+            raise ProviderUnavailableError(
+                "No selected music provider is currently available."
+            )
 
+        total = len(collected)
         start = search.offset
         end = start + search.limit
 
