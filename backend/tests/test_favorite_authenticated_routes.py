@@ -29,13 +29,13 @@ def test_app() -> Generator[FastAPI, None, None]:
         db.commit()
         db.refresh(user)
 
-        user_id = user.id
+        app = FastAPI()
+        app.include_router(api_router)
+
+        app.state.test_user_id = user.id
 
         def override_get_db() -> Generator[Session, None, None]:
             yield db
-
-        app = FastAPI()
-        app.include_router(api_router)
 
         app.dependency_overrides[get_db] = override_get_db
 
@@ -49,7 +49,9 @@ def test_authenticated_user_can_list_empty_favorites(
     test_app: FastAPI,
 ) -> None:
     with TestClient(test_app) as client:
-        token = create_access_token(user_id=1)
+        token = create_access_token(
+            user_id=test_app.state.test_user_id,
+        )
 
         response = client.get(
             "/api/v1/favorites",
@@ -66,7 +68,9 @@ def test_authenticated_user_can_add_favorite(
     test_app: FastAPI,
 ) -> None:
     with TestClient(test_app) as client:
-        token = create_access_token(user_id=1)
+        token = create_access_token(
+            user_id=test_app.state.test_user_id,
+        )
 
         response = client.post(
             "/api/v1/favorites",
@@ -77,7 +81,7 @@ def test_authenticated_user_can_add_favorite(
         )
 
         assert response.status_code == 201
-        assert response.json()["user_id"] == 1
+        assert response.json()["user_id"] == test_app.state.test_user_id
         assert response.json()["track_id"] == 42
 
 
@@ -85,7 +89,9 @@ def test_authenticated_user_can_delete_favorite(
     test_app: FastAPI,
 ) -> None:
     with TestClient(test_app) as client:
-        token = create_access_token(user_id=1)
+        token = create_access_token(
+            user_id=test_app.state.test_user_id,
+        )
 
         create_response = client.post(
             "/api/v1/favorites",
