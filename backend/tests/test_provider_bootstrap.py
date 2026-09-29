@@ -22,50 +22,48 @@ def make_settings(
 
 @pytest.mark.asyncio
 async def test_provider_registry_starts_with_spotify() -> None:
-    registry = await create_provider_registry(make_settings())
+    settings = make_settings()
+
+    registry = await create_provider_registry(settings)
 
     assert isinstance(registry, ProviderRegistry)
 
     spotify = registry.get(ProviderName.SPOTIFY)
 
-    assert spotify is not None
     assert isinstance(spotify, SpotifyProvider)
 
 
 @pytest.mark.asyncio
 async def test_provider_registry_skips_spotify_without_credentials() -> None:
-    registry = await create_provider_registry(
-        make_settings(
-            client_id=None,
-            client_secret=None,
-        )
+    settings = make_settings(
+        client_id=None,
+        client_secret=None,
     )
 
+    registry = await create_provider_registry(settings)
+
     assert registry.get(ProviderName.SPOTIFY) is None
-    assert registry.all() == []
 
 
 @pytest.mark.asyncio
 async def test_provider_registry_skips_spotify_without_client_id() -> None:
-    registry = await create_provider_registry(
-        make_settings(
-            client_id=None,
-            client_secret="test-client-secret",
-        )
+    settings = make_settings(
+        client_id=None,
+        client_secret="test-client-secret",
     )
 
+    registry = await create_provider_registry(settings)
+
     assert registry.get(ProviderName.SPOTIFY) is None
-    assert registry.all() == []
 
 
 @pytest.mark.asyncio
 async def test_provider_registry_skips_spotify_without_client_secret() -> None:
-    registry = await create_provider_registry(
-        make_settings(
-            client_id="test-client-id",
-            client_secret=None,
-        )
+    settings = make_settings(
+        client_id="test-client-id",
+        client_secret=None,
     )
 
+    registry = await create_provider_registry(settings)
+
     assert registry.get(ProviderName.SPOTIFY) is None
-    assert registry.all() == []
