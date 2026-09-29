@@ -50,7 +50,7 @@
 
 - [x] Spotify
 - [x] YouTube
-- [ ] YouTube Music
+- [x] YouTube Music
 - [ ] JioSaavn
 
 ## Phase 4 — Library
