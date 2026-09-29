@@ -1,11 +1,11 @@
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
 
-from app.auth.models import User
-from app.auth.security import create_access_token
-from app.database.base import Base
-from app.main import app
+from app.api.router import api_router
+
+
+app = FastAPI()
+app.include_router(api_router)
 
 
 def test_favorites_requires_authentication() -> None:
