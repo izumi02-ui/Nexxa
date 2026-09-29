@@ -95,18 +95,34 @@
 - [ ] trending
 
 ## Phase 8 — Frontend
-
 - [ ] app shell
 - [ ] navigation
 - [ ] home
 - [ ] search
 - [ ] player
+- [ ] queue
 - [ ] library
 - [ ] playlists
+- [ ] favorites
+- [ ] history
+- [ ] albums
+- [ ] artists
+- [ ] local music
 - [ ] import
 - [ ] downloads
 - [ ] lyrics
+- [ ] radio
+- [ ] recommendations
+- [ ] trending
+- [ ] account
 - [ ] settings
+- [ ] authentication UI
+- [ ] responsive layouts
+- [ ] loading states
+- [ ] empty states
+- [ ] error states
+- [ ] accessibility
+- [ ] theme system
 
 ## Phase 9 — Android / PWA
 - [ ] responsive Android
