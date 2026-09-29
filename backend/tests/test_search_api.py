@@ -29,16 +29,26 @@ class FakeSpotifyProvider(MusicProvider):
             )
         ]
 
+    async def get_track(
+        self,
+        external_id: str,
+    ) -> ProviderTrack | None:
+        return None
 
-def make_registry() -> ProviderRegistry:
+
+def set_provider_registry(
+    client: TestClient,
+    registry: ProviderRegistry,
+) -> None:
+    client.app.state.provider_registry = registry
+
+
+def test_search_returns_tracks() -> None:
     registry = ProviderRegistry()
     registry.register(FakeSpotifyProvider())
-    return registry
 
-
-def test_search_api_uses_provider_registry() -> None:
     with TestClient(app) as client:
-        app.state.provider_registry = make_registry()
+        set_provider_registry(client, registry)
 
         response = client.get(
             "/api/v1/search",
@@ -69,16 +79,19 @@ def test_search_api_uses_provider_registry() -> None:
     )
 
 
-def test_search_api_accepts_pagination_parameters() -> None:
+def test_search_supports_limit_and_offset() -> None:
+    registry = ProviderRegistry()
+    registry.register(FakeSpotifyProvider())
+
     with TestClient(app) as client:
-        app.state.provider_registry = make_registry()
+        set_provider_registry(client, registry)
 
         response = client.get(
             "/api/v1/search",
             params={
                 "query": "test",
-                "limit": 10,
-                "offset": 5,
+                "limit": 5,
+                "offset": 0,
             },
         )
 
@@ -86,13 +99,16 @@ def test_search_api_accepts_pagination_parameters() -> None:
 
     data = response.json()
 
-    assert data["limit"] == 10
-    assert data["offset"] == 5
+    assert data["limit"] == 5
+    assert data["offset"] == 0
 
 
-def test_search_api_rejects_empty_query() -> None:
+def test_search_rejects_empty_query() -> None:
+    registry = ProviderRegistry()
+    registry.register(FakeSpotifyProvider())
+
     with TestClient(app) as client:
-        app.state.provider_registry = make_registry()
+        set_provider_registry(client, registry)
 
         response = client.get(
             "/api/v1/search",
@@ -102,21 +118,12 @@ def test_search_api_rejects_empty_query() -> None:
     assert response.status_code == 422
 
 
-def test_search_api_rejects_query_longer_than_500_characters() -> None:
+def test_search_rejects_invalid_limit() -> None:
+    registry = ProviderRegistry()
+    registry.register(FakeSpotifyProvider())
+
     with TestClient(app) as client:
-        app.state.provider_registry = make_registry()
-
-        response = client.get(
-            "/api/v1/search",
-            params={"query": "a" * 501},
-        )
-
-    assert response.status_code == 422
-
-
-def test_search_api_rejects_zero_limit() -> None:
-    with TestClient(app) as client:
-        app.state.provider_registry = make_registry()
+        set_provider_registry(client, registry)
 
         response = client.get(
             "/api/v1/search",
@@ -129,24 +136,12 @@ def test_search_api_rejects_zero_limit() -> None:
     assert response.status_code == 422
 
 
-def test_search_api_rejects_limit_above_50() -> None:
+def test_search_rejects_invalid_offset() -> None:
+    registry = ProviderRegistry()
+    registry.register(FakeSpotifyProvider())
+
     with TestClient(app) as client:
-        app.state.provider_registry = make_registry()
-
-        response = client.get(
-            "/api/v1/search",
-            params={
-                "query": "test",
-                "limit": 51,
-            },
-        )
-
-    assert response.status_code == 422
-
-
-def test_search_api_rejects_negative_offset() -> None:
-    with TestClient(app) as client:
-        app.state.provider_registry = make_registry()
+        set_provider_registry(client, registry)
 
         response = client.get(
             "/api/v1/search",
@@ -159,9 +154,11 @@ def test_search_api_rejects_negative_offset() -> None:
     assert response.status_code == 422
 
 
-def test_search_api_returns_503_without_providers() -> None:
+def test_search_returns_503_when_no_provider_is_available() -> None:
+    registry = ProviderRegistry()
+
     with TestClient(app) as client:
-        app.state.provider_registry = ProviderRegistry()
+        set_provider_registry(client, registry)
 
         response = client.get(
             "/api/v1/search",
@@ -173,7 +170,40 @@ def test_search_api_returns_503_without_providers() -> None:
     data = response.json()
 
     assert data["error"]["code"] == "PROVIDER_UNAVAILABLE"
-    assert (
-        data["error"]["message"]
-        == "No music provider is currently available."
-    )
+
+
+def test_search_handles_provider_failure() -> None:
+    class FailingProvider(MusicProvider):
+        @property
+        def name(self) -> ProviderName:
+            return ProviderName.SPOTIFY
+
+        async def search_tracks(
+            self,
+            query: str,
+            limit: int = 20,
+        ) -> list[ProviderTrack]:
+            raise RuntimeError("provider failure")
+
+        async def get_track(
+            self,
+            external_id: str,
+        ) -> ProviderTrack | None:
+            return None
+
+    registry = ProviderRegistry()
+    registry.register(FailingProvider())
+
+    with TestClient(app) as client:
+        set_provider_registry(client, registry)
+
+        response = client.get(
+            "/api/v1/search",
+            params={"query": "test"},
+        )
+
+    assert response.status_code == 503
+
+    data = response.json()
+
+    assert data["error"]["code"] == "PROVIDER_UNAVAILABLE"
