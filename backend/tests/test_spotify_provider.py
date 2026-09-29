@@ -160,6 +160,7 @@ async def test_search_tracks_supports_pagination() -> None:
     )
 
     assert len(results) == 3
+
     assert [track.external_id for track in results] == [
         "track-1",
         "track-2",
@@ -171,6 +172,11 @@ async def test_search_tracks_supports_pagination() -> None:
             "query": "test",
             "limit": 3,
             "offset": 0,
+        },
+        {
+            "query": "test",
+            "limit": 1,
+            "offset": 2,
         },
     ]
 
@@ -211,11 +217,23 @@ async def test_search_tracks_requests_multiple_pages_when_needed() -> None:
 
     assert len(results) == 4
 
+    assert [track.external_id for track in results] == [
+        "track-1",
+        "track-2",
+        "track-3",
+        "track-4",
+    ]
+
     assert client.search_calls == [
         {
             "query": "test",
             "limit": 4,
             "offset": 0,
+        },
+        {
+            "query": "test",
+            "limit": 2,
+            "offset": 2,
         },
     ]
 
@@ -232,7 +250,12 @@ async def test_search_tracks_stops_on_short_page() -> None:
                         ),
                     ],
                 },
-            }
+            },
+            {
+                "tracks": {
+                    "items": [],
+                },
+            },
         ]
     )
 
@@ -244,7 +267,19 @@ async def test_search_tracks_stops_on_short_page() -> None:
     )
 
     assert len(results) == 1
-    assert client.search_calls[0]["offset"] == 0
+
+    assert client.search_calls == [
+        {
+            "query": "test",
+            "limit": 5,
+            "offset": 0,
+        },
+        {
+            "query": "test",
+            "limit": 4,
+            "offset": 1,
+        },
+    ]
 
 
 @pytest.mark.asyncio
