@@ -13,8 +13,7 @@ def make_settings(
 ) -> Settings:
     return Settings(
         database_url=(
-            "postgresql+psycopg://"
-            "user:password@localhost:5432/nexxa"
+            "postgresql+psycopg://user:password@localhost:5432/nexxa"
         ),
         spotify_client_id=client_id,
         spotify_client_secret=client_secret,
@@ -48,7 +47,6 @@ def test_spotify_factory_creates_provider() -> None:
 
     provider = create_spotify_provider(settings)
 
-    assert provider is not None
     assert isinstance(provider, SpotifyProvider)
     assert provider.name is ProviderName.SPOTIFY
 
@@ -62,7 +60,6 @@ async def test_spotify_provider_can_be_registered() -> None:
     assert provider is not None
 
     registry = ProviderRegistry()
-
     registry.register(provider)
 
     registered = registry.get(ProviderName.SPOTIFY)
