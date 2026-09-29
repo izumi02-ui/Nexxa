@@ -1,5 +1,6 @@
 import pytest
 
+from app.errors.exceptions import ProviderUnavailableError
 from app.providers.base import MusicProvider
 from app.providers.registry import ProviderRegistry
 from app.providers.types import ProviderName, ProviderTrack
@@ -19,12 +20,6 @@ class FailingSpotifyProvider(MusicProvider):
     ) -> list[ProviderTrack]:
         raise RuntimeError("Spotify is unavailable")
 
-    async def get_track(
-        self,
-        external_id: str,
-    ) -> ProviderTrack | None:
-        return None
-
 
 class WorkingYouTubeProvider(MusicProvider):
     @property
@@ -39,27 +34,20 @@ class WorkingYouTubeProvider(MusicProvider):
         return [
             ProviderTrack(
                 provider=ProviderName.YOUTUBE,
-                external_id="youtube-test-1",
-                title="Working Result",
+                external_id="youtube-1",
+                title="Test Track",
                 artist_name="Test Artist",
                 album_name="Test Album",
                 duration_ms=180000,
                 artwork_url="https://example.com/artwork.jpg",
-                external_url="https://youtube.com/watch?v=test",
+                external_url="https://youtube.com/watch?v=youtube-1",
             )
         ]
-
-    async def get_track(
-        self,
-        external_id: str,
-    ) -> ProviderTrack | None:
-        return None
 
 
 @pytest.mark.asyncio
 async def test_provider_failure_does_not_break_other_providers() -> None:
     registry = ProviderRegistry()
-
     registry.register(FailingSpotifyProvider())
     registry.register(WorkingYouTubeProvider())
 
@@ -67,54 +55,88 @@ async def test_provider_failure_does_not_break_other_providers() -> None:
 
     result = await service.search_tracks(
         SearchQuery(
-            query="test song",
+            query="test",
             limit=20,
+            offset=0,
         )
     )
 
     assert result.total == 1
     assert len(result.tracks) == 1
-
-    track = result.tracks[0]
-
-    assert track.provider is ProviderName.YOUTUBE
-    assert track.external_id == "youtube-test-1"
-    assert track.title == "Working Result"
+    assert result.tracks[0].provider == ProviderName.YOUTUBE
+    assert result.tracks[0].title == "Test Track"
 
 
 @pytest.mark.asyncio
 async def test_search_returns_results_when_only_working_provider_exists() -> None:
     registry = ProviderRegistry()
-
     registry.register(WorkingYouTubeProvider())
 
     service = SearchService(registry)
 
     result = await service.search_tracks(
         SearchQuery(
-            query="test song",
+            query="test",
             limit=20,
+            offset=0,
         )
     )
 
     assert result.total == 1
-    assert len(result.tracks) == 1
+    assert result.tracks[0].external_id == "youtube-1"
+    assert result.tracks[0].artwork_url == "https://example.com/artwork.jpg"
 
 
 @pytest.mark.asyncio
-async def test_search_returns_empty_when_all_providers_fail() -> None:
+async def test_search_raises_when_all_providers_fail() -> None:
     registry = ProviderRegistry()
-
     registry.register(FailingSpotifyProvider())
+
+    service = SearchService(registry)
+
+    with pytest.raises(ProviderUnavailableError) as exc_info:
+        await service.search_tracks(
+            SearchQuery(
+                query="test",
+                limit=20,
+                offset=0,
+            )
+        )
+
+    assert exc_info.value.code == "PROVIDER_UNAVAILABLE"
+
+
+@pytest.mark.asyncio
+async def test_search_raises_when_no_providers_are_registered() -> None:
+    registry = ProviderRegistry()
+    service = SearchService(registry)
+
+    with pytest.raises(ProviderUnavailableError) as exc_info:
+        await service.search_tracks(
+            SearchQuery(
+                query="test",
+                limit=20,
+                offset=0,
+            )
+        )
+
+    assert exc_info.value.code == "PROVIDER_UNAVAILABLE"
+
+
+@pytest.mark.asyncio
+async def test_search_returns_empty_for_blank_query() -> None:
+    registry = ProviderRegistry()
+    registry.register(WorkingYouTubeProvider())
 
     service = SearchService(registry)
 
     result = await service.search_tracks(
         SearchQuery(
-            query="test song",
+            query="   ",
             limit=20,
+            offset=0,
         )
     )
 
-    assert result.tracks == []
     assert result.total == 0
+    assert result.tracks == []
