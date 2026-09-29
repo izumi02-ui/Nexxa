@@ -5,3 +5,5 @@ alembic
 psycopg[binary]
 pydantic-settings
 pwdlib[argon2]
+pytest
+httpx
