@@ -9,10 +9,8 @@ class SpotifyProvider(MusicProvider):
     def __init__(
         self,
         client: SpotifyClient,
-        access_token: str,
     ) -> None:
         self.client = client
-        self.access_token = access_token
 
     @property
     def name(self) -> ProviderName:
@@ -23,16 +21,14 @@ class SpotifyProvider(MusicProvider):
         query: str,
         limit: int = 20,
     ) -> list[ProviderTrack]:
-        """Search Spotify and normalize results into ProviderTrack objects."""
+        """Search Spotify and normalize results."""
 
         response = await self.client.search_tracks(
-            access_token=self.access_token,
             query=query,
             limit=min(limit, 10),
         )
 
-        tracks = response.get("tracks", {})
-        items = tracks.get("items", [])
+        items = response.get("tracks", {}).get("items", [])
 
         return [
             self._normalize_track(item)
@@ -49,7 +45,6 @@ class SpotifyProvider(MusicProvider):
             return None
 
         response = await self.client.get_track(
-            access_token=self.access_token,
             external_id=external_id,
         )
 
@@ -62,8 +57,6 @@ class SpotifyProvider(MusicProvider):
     def _normalize_track(
         item: dict,
     ) -> ProviderTrack:
-        """Convert a Spotify track object into NEXXA provider data."""
-
         artists = item.get("artists") or []
 
         artist_name = (
@@ -74,20 +67,14 @@ class SpotifyProvider(MusicProvider):
 
         album = item.get("album") or {}
 
-        album_name = album.get("name")
-
-        images = album.get("images") or []
-
-        external_url = (
-            (item.get("external_urls") or {}).get("spotify")
-        )
-
         return ProviderTrack(
             provider=ProviderName.SPOTIFY,
             external_id=item.get("id", ""),
             title=item.get("name", ""),
             artist_name=artist_name,
-            album_name=album_name,
+            album_name=album.get("name"),
             duration_ms=item.get("duration_ms"),
-            external_url=external_url,
+            external_url=(
+                (item.get("external_urls") or {}).get("spotify")
+            ),
         )
