@@ -14,9 +14,11 @@ class SearchService:
         search: SearchQuery,
         providers: list[ProviderName] | None = None,
     ) -> SearchResult:
-        """Search registered providers and return normalized results."""
+        """Search selected providers and apply deterministic pagination."""
 
-        if not search.query.strip():
+        query = search.query.strip()
+
+        if not query:
             return SearchResult(
                 tracks=[],
                 total=0,
@@ -27,7 +29,10 @@ class SearchService:
         selected_providers = (
             providers
             if providers is not None
-            else [provider.name for provider in self.registry.all()]
+            else [
+                provider.name
+                for provider in self.registry.all()
+            ]
         )
 
         collected: list[ProviderTrack] = []
@@ -38,11 +43,9 @@ class SearchService:
             if provider is None:
                 continue
 
-            requested_limit = search.offset + search.limit
-
             results = await provider.search_tracks(
-                query=search.query,
-                limit=requested_limit,
+                query=query,
+                limit=search.limit,
             )
 
             collected.extend(results)
