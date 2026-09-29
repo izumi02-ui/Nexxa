@@ -18,6 +18,9 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
+    spotify_client_id: str | None = None
+    spotify_client_secret: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
