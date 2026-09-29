@@ -39,6 +39,29 @@ class FakeAsyncClient:
         return self.response
 
 
+class FailingAsyncClient:
+    async def __aenter__(self) -> "FailingAsyncClient":
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type,
+        exc_value,
+        traceback,
+    ) -> None:
+        return None
+
+    async def get(
+        self,
+        url: str,
+        params: dict,
+    ) -> httpx.Response:
+        raise httpx.ConnectError(
+            "connection failed",
+            request=httpx.Request("GET", url),
+        )
+
+
 def make_response(
     status_code: int,
     json_data: dict,
@@ -320,6 +343,26 @@ async def test_get_video_returns_none_for_blank_id() -> None:
     video = await client.get_video("   ")
 
     assert video is None
+
+
+@pytest.mark.asyncio
+async def test_request_converts_network_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def create_client(*args, **kwargs) -> FailingAsyncClient:
+        return FailingAsyncClient()
+
+    monkeypatch.setattr(
+        "app.providers.youtube.client.httpx.AsyncClient",
+        create_client,
+    )
+
+    client = YouTubeClient(
+        api_key="test-api-key",
+    )
+
+    with pytest.raises(YouTubeAPIError, match="request failed"):
+        await client.get_video("abc123")
 
 
 def test_client_requires_api_key() -> None:
