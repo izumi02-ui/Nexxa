@@ -51,7 +51,7 @@
 - [x] Spotify
 - [x] YouTube
 - [x] YouTube Music
-- [ ] JioSaavn
+- [ ] Apple Music
 
 ## Phase 4 — Library
 
@@ -69,6 +69,7 @@
 - [ ] Spotify import
 - [ ] YouTube import
 - [ ] YouTube Music import
+- [ ] Apple Music import
 - [ ] discovery
 - [ ] pagination
 - [ ] matching
