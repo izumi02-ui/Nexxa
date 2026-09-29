@@ -4,7 +4,7 @@ from app.providers.youtube_music.client import YouTubeMusicClient
 
 
 class YouTubeMusicProvider(MusicProvider):
-    """NEXXA provider boundary for YouTube Music."""
+    """NEXXA provider for music-oriented YouTube Data API results."""
 
     def __init__(self, client: YouTubeMusicClient) -> None:
         self.client = client
