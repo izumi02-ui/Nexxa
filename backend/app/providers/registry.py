@@ -11,6 +11,9 @@ class ProviderRegistry:
     def register(self, provider: MusicProvider) -> None:
         self._providers[provider.name] = provider
 
+    def unregister(self, name: ProviderName) -> None:
+        self._providers.pop(name, None)
+
     def get(self, name: ProviderName) -> MusicProvider | None:
         return self._providers.get(name)
 
