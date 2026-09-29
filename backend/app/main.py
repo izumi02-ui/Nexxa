@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app.api.router import api_router
@@ -6,6 +8,7 @@ from app.environment import get_environment
 from app.errors.exceptions import NEXXAError
 from app.errors.handlers import nexxa_error_handler
 from app.logging_config import configure_logging, get_logger
+from app.providers.bootstrap import create_provider_registry
 
 
 configure_logging()
@@ -15,11 +18,31 @@ logger = get_logger(__name__)
 settings = get_settings()
 environment = get_environment(settings)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize application-wide services."""
+
+    app.state.provider_registry = await create_provider_registry(
+        settings
+    )
+
+    logger.info(
+        "Provider registry initialized with %d provider(s)",
+        len(app.state.provider_registry.all()),
+    )
+
+    yield
+
+    logger.info("NEXXA application shutdown")
+
+
 app = FastAPI(
     title=settings.app_name,
     description="Backend API for NEXXA, a cross-platform music application.",
     version=settings.app_version,
     debug=environment.debug,
+    lifespan=lifespan,
 )
 
 app.add_exception_handler(
