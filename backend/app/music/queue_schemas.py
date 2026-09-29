@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import Field
 
 from app.validation.common import NEXXABaseModel
@@ -22,3 +24,4 @@ class QueueItemResponse(NEXXABaseModel):
     user_id: int
     track_id: int
     position: int
+    added_at: datetime
