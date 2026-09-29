@@ -10,7 +10,7 @@ async def create_provider_registry(
 
     registry = ProviderRegistry()
 
-    spotify = await create_spotify_provider(settings)
+    spotify = create_spotify_provider(settings)
 
     if spotify is not None:
         registry.register(spotify)
