@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from time import monotonic
 
 import httpx
 
@@ -30,6 +31,31 @@ class SpotifyClient:
         self.client_id = client_id
         self.client_secret = client_secret
 
+        self._access_token: str | None = None
+        self._token_expires_at: float = 0.0
+
+    async def get_access_token(self) -> str:
+        """Return a cached token or request a new one."""
+
+        now = monotonic()
+
+        if (
+            self._access_token is not None
+            and now < self._token_expires_at
+        ):
+            return self._access_token
+
+        token = await self.get_client_credentials_token()
+
+        self._access_token = token.access_token
+
+        # Refresh slightly before Spotify's reported expiration time.
+        self._token_expires_at = (
+            now + max(token.expires_in - 60, 1)
+        )
+
+        return self._access_token
+
     async def get_client_credentials_token(self) -> SpotifyToken:
         """Request an application access token from Spotify."""
 
@@ -48,20 +74,27 @@ class SpotifyClient:
 
         if response.status_code != 200:
             raise SpotifyAPIError(
-                f"Spotify token request failed with status "
+                "Spotify token request failed with status "
                 f"{response.status_code}."
             )
 
         data = response.json()
 
+        access_token = data.get("access_token")
+        expires_in = data.get("expires_in")
+
+        if not access_token or not isinstance(expires_in, int):
+            raise SpotifyAPIError(
+                "Spotify returned an invalid access token response."
+            )
+
         return SpotifyToken(
-            access_token=data["access_token"],
-            expires_in=data["expires_in"],
+            access_token=access_token,
+            expires_in=expires_in,
         )
 
     async def search_tracks(
         self,
-        access_token: str,
         query: str,
         limit: int = 10,
         offset: int = 0,
@@ -81,6 +114,8 @@ class SpotifyClient:
         limit = min(max(limit, 1), 10)
         offset = max(offset, 0)
 
+        access_token = await self.get_access_token()
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{SPOTIFY_API_BASE_URL}/search",
@@ -98,7 +133,7 @@ class SpotifyClient:
 
         if response.status_code != 200:
             raise SpotifyAPIError(
-                f"Spotify search request failed with status "
+                "Spotify search request failed with status "
                 f"{response.status_code}."
             )
 
@@ -106,10 +141,11 @@ class SpotifyClient:
 
     async def get_track(
         self,
-        access_token: str,
         external_id: str,
     ) -> dict:
         """Retrieve one Spotify track by ID."""
+
+        access_token = await self.get_access_token()
 
         async with httpx.AsyncClient() as client:
             response = await client.get(
@@ -122,7 +158,7 @@ class SpotifyClient:
 
         if response.status_code != 200:
             raise SpotifyAPIError(
-                f"Spotify track request failed with status "
+                "Spotify track request failed with status "
                 f"{response.status_code}."
             )
 
