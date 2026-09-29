@@ -11,14 +11,13 @@ class TrackCreate(NEXXABaseModel):
         max_length=500,
     )
 
-    artist_name: str = Field(
-        min_length=1,
-        max_length=500,
+    artist_id: int = Field(
+        ge=1,
     )
 
-    album_name: str | None = Field(
+    album_id: int | None = Field(
         default=None,
-        max_length=500,
+        ge=1,
     )
 
     duration_ms: int | None = Field(
@@ -30,11 +29,11 @@ class TrackCreate(NEXXABaseModel):
 
 
 class TrackResponse(NEXXABaseModel):
-    """API representation of a track."""
+    """API representation of a normalized track."""
 
     id: int
     title: str
-    artist_name: str
-    album_name: str | None
+    artist_id: int
+    album_id: int | None
     duration_ms: int | None
     artwork_url: str | None
