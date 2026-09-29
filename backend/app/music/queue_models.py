@@ -1,15 +1,23 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer
+from sqlalchemy import DateTime, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
 
 
-class QueueItem(Base):
-    """A track currently stored in a user's playback queue."""
+class Queue(Base):
+    """Persistent playback queue for a NEXXA user."""
 
-    __tablename__ = "queue_items"
+    __tablename__ = "queues"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "position",
+            name="uq_queue_user_position",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(
         Integer,
@@ -20,11 +28,13 @@ class QueueItem(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         nullable=False,
+        index=True,
     )
 
     track_id: Mapped[int] = mapped_column(
         ForeignKey("tracks.id"),
         nullable=False,
+        index=True,
     )
 
     position: Mapped[int] = mapped_column(
@@ -35,5 +45,5 @@ class QueueItem(Base):
     added_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
     )
