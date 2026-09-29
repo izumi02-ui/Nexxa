@@ -4,23 +4,30 @@ on:
   push:
     paths:
       - "backend/app/providers/youtube_music/**"
+      - "backend/app/providers/youtube/**"
       - "backend/app/providers/base.py"
       - "backend/app/providers/types.py"
+      - "backend/app/providers/bootstrap.py"
       - "backend/app/config.py"
       - "backend/tests/test_youtube_music_client.py"
       - "backend/tests/test_youtube_music_provider.py"
       - "backend/tests/test_youtube_music_factory.py"
+      - "backend/tests/test_provider_bootstrap.py"
       - "backend/requirements.txt"
       - ".github/workflows/youtube-music-tests.yml"
+
   pull_request:
     paths:
       - "backend/app/providers/youtube_music/**"
+      - "backend/app/providers/youtube/**"
       - "backend/app/providers/base.py"
       - "backend/app/providers/types.py"
+      - "backend/app/providers/bootstrap.py"
       - "backend/app/config.py"
       - "backend/tests/test_youtube_music_client.py"
       - "backend/tests/test_youtube_music_provider.py"
       - "backend/tests/test_youtube_music_factory.py"
+      - "backend/tests/test_provider_bootstrap.py"
       - "backend/requirements.txt"
       - ".github/workflows/youtube-music-tests.yml"
 
@@ -49,4 +56,5 @@ jobs:
           python -m pytest -q \
             tests/test_youtube_music_client.py \
             tests/test_youtube_music_provider.py \
-            tests/test_youtube_music_factory.py
+            tests/test_youtube_music_factory.py \
+            tests/test_provider_bootstrap.py
