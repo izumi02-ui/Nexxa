@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -11,6 +11,13 @@ class PlaybackState(Base):
 
     __tablename__ = "playback_states"
 
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            name="uq_playback_state_user",
+        ),
+    )
+
     id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,
@@ -20,13 +27,13 @@ class PlaybackState(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         nullable=False,
-        unique=True,
         index=True,
     )
 
-    current_track_id: Mapped[int | None] = mapped_column(
+    track_id: Mapped[int | None] = mapped_column(
         ForeignKey("tracks.id"),
         nullable=True,
+        index=True,
     )
 
     position_ms: Mapped[int] = mapped_column(
@@ -35,16 +42,16 @@ class PlaybackState(Base):
         default=0,
     )
 
-    volume: Mapped[float] = mapped_column(
-        Float,
-        nullable=False,
-        default=1.0,
-    )
-
     is_playing: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         default=False,
+    )
+
+    volume: Mapped[float] = mapped_column(
+        Float,
+        nullable=False,
+        default=1.0,
     )
 
     updated_at: Mapped[datetime] = mapped_column(
