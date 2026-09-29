@@ -12,14 +12,14 @@ class Settings(BaseSettings):
 
     api_prefix: str = "/api/v1"
 
-    database_url: str = Field(
-        min_length=1,
-    )
+    database_url: str = Field(min_length=1)
 
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
     spotify_client_id: str | None = None
     spotify_client_secret: str | None = None
+
+    youtube_api_key: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
