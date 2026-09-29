@@ -1,39 +1,60 @@
-from app.providers.base import MusicProvider
+from app.providers.registry import ProviderRegistry
+from app.providers.types import ProviderName, ProviderTrack
 from app.search.types import SearchQuery, SearchResult
 
 
 class SearchService:
-    """Coordinates normalized search across registered providers."""
+    """Coordinates track searches across registered providers."""
 
-    def __init__(
+    def __init__(self, registry: ProviderRegistry) -> None:
+        self.registry = registry
+
+    async def search_tracks(
         self,
-        providers: list[MusicProvider],
-    ) -> None:
-        self._providers = providers
+        search: SearchQuery,
+        providers: list[ProviderName] | None = None,
+    ) -> SearchResult:
+        """Search registered providers and return normalized results."""
 
-    async def search(
-        self,
-        search_query: SearchQuery,
-    ) -> list[SearchResult]:
-        results: list[SearchResult] = []
-
-        for provider in self._providers:
-            tracks = await provider.search_tracks(
-                query=search_query.query,
-                limit=search_query.limit,
+        if not search.query.strip():
+            return SearchResult(
+                tracks=[],
+                total=0,
+                offset=search.offset,
+                limit=search.limit,
             )
 
-            for track in tracks:
-                results.append(
-                    SearchResult(
-                        provider=track.provider,
-                        external_id=track.external_id,
-                        title=track.title,
-                        artist_name=track.artist_name,
-                        album_name=track.album_name,
-                        duration_ms=track.duration_ms,
-                        external_url=track.external_url,
-                    )
-                )
+        selected_providers = (
+            providers
+            if providers is not None
+            else [provider.name for provider in self.registry.all()]
+        )
 
-        return results
+        collected: list[ProviderTrack] = []
+
+        for provider_name in selected_providers:
+            provider = self.registry.get(provider_name)
+
+            if provider is None:
+                continue
+
+            requested_limit = search.offset + search.limit
+
+            results = await provider.search_tracks(
+                query=search.query,
+                limit=requested_limit,
+            )
+
+            collected.extend(results)
+
+        total = len(collected)
+
+        start = search.offset
+        end = start + search.limit
+
+        return SearchResult(
+            tracks=collected[start:end],
+            total=total,
+            offset=search.offset,
+            limit=search.limit,
+        )
