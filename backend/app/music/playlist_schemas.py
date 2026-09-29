@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import Field
 
 from app.validation.common import NEXXABaseModel
@@ -8,22 +10,27 @@ class PlaylistCreate(NEXXABaseModel):
 
     name: str = Field(
         min_length=1,
-        max_length=500,
+        max_length=255,
     )
 
     description: str | None = None
 
     artwork_url: str | None = None
 
+    is_public: bool = False
+
 
 class PlaylistResponse(NEXXABaseModel):
     """API representation of a playlist."""
 
     id: int
+    user_id: int
     name: str
     description: str | None
-    owner_id: int
     artwork_url: str | None
+    is_public: bool
+    created_at: datetime
+    updated_at: datetime
 
 
 class PlaylistTrackCreate(NEXXABaseModel):
@@ -45,3 +52,4 @@ class PlaylistTrackResponse(NEXXABaseModel):
     playlist_id: int
     track_id: int
     position: int
+    added_at: datetime
