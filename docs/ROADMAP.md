@@ -4,47 +4,47 @@
 
 ## Phase 0 — Documentation
 
-- [ ] product scope
-- [ ] architecture
-- [ ] providers
-- [ ] music
-- [ ] import
-- [ ] database
-- [ ] API
-- [ ] security
-- [ ] frontend
-- [ ] mobile
-- [ ] testing
-- [ ] deployment
-- [ ] decisions
-- [ ] feature research
+- [x] product scope
+- [x] architecture
+- [x] providers
+- [x] music
+- [x] import
+- [x] database
+- [x] API
+- [x] security
+- [x] frontend
+- [x] mobile
+- [x] testing
+- [x] deployment
+- [x] decisions
+- [x] feature research
 
 ## Phase 1 — Server Foundation
 
-- [ ] backend project
-- [ ] configuration
-- [ ] environment system
-- [ ] logging
-- [ ] health endpoint
-- [ ] API versioning
-- [ ] database
-- [ ] migrations
-- [ ] validation
-- [ ] error handling
-- [ ] provider interfaces
-- [ ] authentication foundation
+- [x] backend project
+- [x] configuration
+- [x] environment system
+- [x] logging
+- [x] health endpoint
+- [x] API versioning
+- [x] database
+- [x] migrations
+- [x] validation
+- [x] error handling
+- [x] provider interfaces
+- [x] authentication foundation
 
 ## Phase 2 — Core Music
 
-- [ ] tracks
-- [ ] artists
-- [ ] albums
-- [ ] playlists
-- [ ] queue
-- [ ] playback state
-- [ ] search abstraction
-- [ ] source resolution
-- [ ] metadata normalization
+- [x] tracks
+- [x] artists
+- [x] albums
+- [x] playlists
+- [x] queue
+- [x] playback state
+- [x] search abstraction
+- [x] source resolution
+- [x] metadata normalization
 
 ## Phase 3 — Providers
 
