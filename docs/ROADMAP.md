@@ -60,6 +60,45 @@
 - [ ] history
 - [ ] albums
 - [ ] artists
+  - [ ] unified artist profile
+  - [ ] artist image
+  - [ ] artist biography / description where provider supplies it
+  - [ ] artist genres / categories
+  - [ ] provider profiles and external links
+  - [ ] Spotify artist info
+    - [ ] Spotify followers
+    - [ ] Spotify popularity
+    - [ ] Spotify genres
+    - [ ] Spotify albums
+    - [ ] Spotify singles
+    - [ ] Spotify compilations
+    - [ ] Spotify top/popular tracks
+    - [ ] Spotify track popularity ranking
+    - [ ] Spotify artist statistics timestamp
+    - [ ] Spotify metric availability handling
+  - [ ] YouTube artist/channel info
+    - [ ] YouTube channel
+    - [ ] YouTube subscribers
+    - [ ] YouTube total channel views
+    - [ ] YouTube public video count
+    - [ ] YouTube most viewed songs/videos
+    - [ ] YouTube most liked songs/videos
+    - [ ] YouTube latest songs/videos
+    - [ ] YouTube per-video view count
+    - [ ] YouTube per-video like count
+    - [ ] YouTube per-video comment count
+    - [ ] YouTube channel topics/categories
+    - [ ] YouTube statistics timestamp
+  - [ ] cross-provider artist comparison
+    - [ ] Spotify followers
+    - [ ] Spotify popularity
+    - [ ] YouTube subscribers
+    - [ ] YouTube total views
+    - [ ] provider-specific top tracks
+  - [ ] artist statistics cache
+  - [ ] artist statistics refresh
+  - [ ] provider metric availability flags
+  - [ ] provider mapping for the same artist
 - [ ] local music
 - [ ] duplicate detection
 - [ ] provider mappings
@@ -107,6 +146,18 @@
 - [ ] history
 - [ ] albums
 - [ ] artists
+  - [ ] artist header
+  - [ ] artist overview
+  - [ ] provider tabs
+  - [ ] Spotify statistics category
+  - [ ] YouTube statistics category
+  - [ ] popular tracks
+  - [ ] most viewed tracks/videos
+  - [ ] most liked tracks/videos
+  - [ ] albums and singles
+  - [ ] provider links
+  - [ ] statistics last updated
+  - [ ] unavailable metric states
 - [ ] local music
 - [ ] import
 - [ ] downloads
