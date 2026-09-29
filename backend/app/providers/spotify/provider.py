@@ -32,6 +32,7 @@ class SpotifyProvider(MusicProvider):
 
         while len(normalized_tracks) < limit:
             remaining = limit - len(normalized_tracks)
+
             request_limit = min(
                 remaining,
                 self._MAX_RESULTS_PER_REQUEST,
@@ -60,6 +61,8 @@ class SpotifyProvider(MusicProvider):
             if not items:
                 break
 
+            total = tracks.get("total")
+
             for item in items:
                 if not isinstance(item, dict):
                     continue
@@ -76,10 +79,14 @@ class SpotifyProvider(MusicProvider):
                 if len(normalized_tracks) >= limit:
                     break
 
-            if len(items) < request_limit:
+            offset += len(items)
+
+            if len(normalized_tracks) >= limit:
                 break
 
-            offset += len(items)
+            if isinstance(total, int) and total >= 0:
+                if offset >= total:
+                    break
 
         return normalized_tracks[:limit]
 
