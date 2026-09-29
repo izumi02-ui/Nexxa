@@ -73,29 +73,56 @@ Potential responsibilities include:
 
 The implementation must be isolated because YouTube Music request patterns differ from standard YouTube integrations.
 
-## 4. JioSaavn
+## 4. Apple Music
+
+Apple Music is treated as a separate provider.
 
 Potential responsibilities include:
 
-- launch/home data
-- top searches
-- song search
-- album search
-- artist search
-- playlist search
+- catalog search
 - song details
 - album details
-- playlist details
+- artist details
+- playlists
+- charts
+- stations
 - recommendations
-- radio and stations
+- supported user-library metadata
+- supported user-library operations
 
-Reference host:
+### API Base
 
 ```text
-www.jiosaavn.com
+https://api.music.apple.com/v1
 ```
 
-Current availability must be verified before implementation.
+### Authentication
+
+Apple Music API access may use an Apple developer token.
+
+The Apple developer token is a signed token generated using the Apple Music developer credentials.
+
+Server-side Apple Music credentials must remain on the backend.
+
+Environment variables:
+
+```text
+APPLE_MUSIC_TEAM_ID
+APPLE_MUSIC_KEY_ID
+APPLE_MUSIC_PRIVATE_KEY
+APPLE_MUSIC_DEVELOPER_TOKEN
+```
+
+User-specific Apple Music operations may additionally require a Music User Token obtained through the appropriate Apple Music authorization flow.
+
+NEXXA must use Apple's documented authentication and authorization mechanisms.
+
+Never place Apple Music private keys or other server-side Apple Music credentials inside:
+
+- frontend JavaScript
+- Android source
+- a public repository
+- a client bundle
 
 ## Provider Capability System
 
