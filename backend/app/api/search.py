@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Request
-from pydantic import Field
+from fastapi import APIRouter, Query, Request
 
 from app.search.service import SearchService
 from app.search.types import SearchQuery
@@ -26,25 +25,26 @@ class SearchResponse(NEXXABaseModel):
     limit: int
 
 
-@router.get("/search", response_model=SearchResponse)
+@router.get(
+    "/search",
+    response_model=SearchResponse,
+)
 async def search(
     request: Request,
-    query: str = Field(
+    query: str = Query(
         min_length=1,
         max_length=500,
     ),
-    limit: int = Field(
+    limit: int = Query(
         default=20,
         ge=1,
         le=50,
     ),
-    offset: int = Field(
+    offset: int = Query(
         default=0,
         ge=0,
     ),
 ) -> SearchResponse:
-    """Search registered NEXXA music providers."""
-
     search_query = SearchQuery(
         query=query,
         limit=limit,
@@ -55,7 +55,9 @@ async def search(
 
     service = SearchService(registry)
 
-    result = await service.search_tracks(search_query)
+    result = await service.search_tracks(
+        search_query,
+    )
 
     return SearchResponse(
         tracks=[
