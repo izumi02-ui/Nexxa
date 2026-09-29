@@ -9,7 +9,31 @@ SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 
 
 class SpotifyAPIError(Exception):
-    """Raised when a Spotify API operation fails."""
+    """Base exception for Spotify API failures."""
+
+
+class SpotifyAuthenticationError(SpotifyAPIError):
+    """Raised when Spotify rejects authentication."""
+
+
+class SpotifyNotFoundError(SpotifyAPIError):
+    """Raised when a Spotify resource does not exist."""
+
+
+class SpotifyRateLimitError(SpotifyAPIError):
+    """Raised when Spotify rate-limits a request."""
+
+    def __init__(
+        self,
+        message: str,
+        retry_after: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+class SpotifyServerError(SpotifyAPIError):
+    """Raised when Spotify returns a server-side error."""
 
 
 @dataclass(frozen=True)
@@ -77,11 +101,10 @@ class SpotifyClient:
                 "Unable to connect to Spotify token service."
             ) from exc
 
-        if response.status_code != 200:
-            raise SpotifyAPIError(
-                "Spotify token request failed with status "
-                f"{response.status_code}."
-            )
+        self._raise_for_status(
+            response,
+            operation="Spotify token request",
+        )
 
         try:
             data = response.json()
@@ -153,11 +176,10 @@ class SpotifyClient:
                 "Unable to connect to Spotify search service."
             ) from exc
 
-        if response.status_code != 200:
-            raise SpotifyAPIError(
-                "Spotify search request failed with status "
-                f"{response.status_code}."
-            )
+        self._raise_for_status(
+            response,
+            operation="Spotify search request",
+        )
 
         try:
             return response.json()
@@ -195,11 +217,10 @@ class SpotifyClient:
                 "Unable to connect to Spotify track service."
             ) from exc
 
-        if response.status_code != 200:
-            raise SpotifyAPIError(
-                "Spotify track request failed with status "
-                f"{response.status_code}."
-            )
+        self._raise_for_status(
+            response,
+            operation="Spotify track request",
+        )
 
         try:
             return response.json()
@@ -207,3 +228,52 @@ class SpotifyClient:
             raise SpotifyAPIError(
                 "Spotify returned invalid track response data."
             ) from exc
+
+    @staticmethod
+    def _raise_for_status(
+        response: httpx.Response,
+        operation: str,
+    ) -> None:
+        """Convert Spotify HTTP failures into typed exceptions."""
+
+        status_code = response.status_code
+
+        if status_code < 400:
+            return
+
+        if status_code in (401, 403):
+            raise SpotifyAuthenticationError(
+                f"{operation} was rejected by Spotify "
+                f"with status {status_code}."
+            )
+
+        if status_code == 404:
+            raise SpotifyNotFoundError(
+                f"{operation} could not find the requested resource."
+            )
+
+        if status_code == 429:
+            retry_after: int | None = None
+
+            value = response.headers.get("Retry-After")
+
+            if value is not None:
+                try:
+                    retry_after = max(int(value), 0)
+                except ValueError:
+                    retry_after = None
+
+            raise SpotifyRateLimitError(
+                "Spotify rate limit exceeded.",
+                retry_after=retry_after,
+            )
+
+        if 500 <= status_code <= 599:
+            raise SpotifyServerError(
+                f"{operation} failed because Spotify returned "
+                f"server status {status_code}."
+            )
+
+        raise SpotifyAPIError(
+            f"{operation} failed with status {status_code}."
+        )
