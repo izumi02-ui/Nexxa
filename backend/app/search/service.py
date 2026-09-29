@@ -1,10 +1,15 @@
+import logging
+
 from app.providers.registry import ProviderRegistry
 from app.providers.types import ProviderName, ProviderTrack
 from app.search.types import SearchQuery, SearchResult
 
 
+logger = logging.getLogger(__name__)
+
+
 class SearchService:
-    """Coordinates track searches across registered providers."""
+    """Coordinates searches across registered music providers."""
 
     def __init__(self, registry: ProviderRegistry) -> None:
         self.registry = registry
@@ -14,8 +19,6 @@ class SearchService:
         search: SearchQuery,
         providers: list[ProviderName] | None = None,
     ) -> SearchResult:
-        """Search selected providers and apply deterministic pagination."""
-
         query = search.query.strip()
 
         if not query:
@@ -29,10 +32,7 @@ class SearchService:
         selected_providers = (
             providers
             if providers is not None
-            else [
-                provider.name
-                for provider in self.registry.all()
-            ]
+            else [provider.name for provider in self.registry.all()]
         )
 
         collected: list[ProviderTrack] = []
@@ -43,10 +43,17 @@ class SearchService:
             if provider is None:
                 continue
 
-            results = await provider.search_tracks(
-                query=query,
-                limit=search.limit,
-            )
+            try:
+                results = await provider.search_tracks(
+                    query=query,
+                    limit=search.limit,
+                )
+            except Exception:
+                logger.exception(
+                    "Provider search failed: %s",
+                    provider_name.value,
+                )
+                continue
 
             collected.extend(results)
 
