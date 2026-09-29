@@ -1,4 +1,5 @@
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.music.favorite_models import Favorite
@@ -9,7 +10,10 @@ def create_favorite(
     user_id: int,
     track_id: int,
 ) -> Favorite:
-    """Create a favorite for a user and track."""
+    """Create a favorite for a user and track.
+
+    Returns the existing favorite when the track is already favorited.
+    """
 
     existing = db.scalar(
         select(Favorite).where(
@@ -26,8 +30,22 @@ def create_favorite(
         track_id=track_id,
     )
 
-    db.add(favorite)
-    db.flush()
+    try:
+        with db.begin_nested():
+            db.add(favorite)
+            db.flush()
+    except IntegrityError:
+        existing = db.scalar(
+            select(Favorite).where(
+                Favorite.user_id == user_id,
+                Favorite.track_id == track_id,
+            )
+        )
+
+        if existing is None:
+            raise
+
+        return existing
 
     return favorite
 
