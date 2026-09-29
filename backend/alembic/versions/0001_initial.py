@@ -1,0 +1,501 @@
+"""create initial database schema
+
+Revision ID: 0001
+Revises:
+Create Date: 2026-09-29
+"""
+
+from alembic import op
+import sqlalchemy as sa
+
+
+revision = "0001"
+down_revision = None
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    op.create_table(
+        "users",
+        sa.Column(
+            "id",
+            sa.Integer(),
+            autoincrement=True,
+            nullable=False,
+        ),
+        sa.Column(
+            "email",
+            sa.String(length=320),
+            nullable=False,
+        ),
+        sa.Column(
+            "username",
+            sa.String(length=100),
+            nullable=True,
+        ),
+        sa.Column(
+            "password_hash",
+            sa.String(length=255),
+            nullable=True,
+        ),
+        sa.Column(
+            "is_active",
+            sa.Boolean(),
+            nullable=False,
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("email"),
+        sa.UniqueConstraint("username"),
+    )
+
+    op.create_index(
+        "ix_users_email",
+        "users",
+        ["email"],
+    )
+
+    op.create_index(
+        "ix_users_username",
+        "users",
+        ["username"],
+    )
+
+    op.create_table(
+        "artists",
+        sa.Column(
+            "id",
+            sa.Integer(),
+            autoincrement=True,
+            nullable=False,
+        ),
+        sa.Column(
+            "name",
+            sa.String(length=500),
+            nullable=False,
+        ),
+        sa.Column(
+            "image_url",
+            sa.Text(),
+            nullable=True,
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+    op.create_table(
+        "albums",
+        sa.Column(
+            "id",
+            sa.Integer(),
+            autoincrement=True,
+            nullable=False,
+        ),
+        sa.Column(
+            "title",
+            sa.String(length=500),
+            nullable=False,
+        ),
+        sa.Column(
+            "artist_id",
+            sa.Integer(),
+            nullable=True,
+        ),
+        sa.Column(
+            "artwork_url",
+            sa.Text(),
+            nullable=True,
+        ),
+        sa.Column(
+            "release_date",
+            sa.DateTime(timezone=True),
+            nullable=True,
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["artist_id"],
+            ["artists.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+    op.create_table(
+        "tracks",
+        sa.Column(
+            "id",
+            sa.Integer(),
+            autoincrement=True,
+            nullable=False,
+        ),
+        sa.Column(
+            "title",
+            sa.String(length=500),
+            nullable=False,
+        ),
+        sa.Column(
+            "artist_id",
+            sa.Integer(),
+            nullable=False,
+        ),
+        sa.Column(
+            "album_id",
+            sa.Integer(),
+            nullable=True,
+        ),
+        sa.Column(
+            "duration_ms",
+            sa.Integer(),
+            nullable=True,
+        ),
+        sa.Column(
+            "artwork_url",
+            sa.Text(),
+            nullable=True,
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["album_id"],
+            ["albums.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["artist_id"],
+            ["artists.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+    op.create_table(
+        "playlists",
+        sa.Column(
+            "id",
+            sa.Integer(),
+            autoincrement=True,
+            nullable=False,
+        ),
+        sa.Column(
+            "user_id",
+            sa.Integer(),
+            nullable=False,
+        ),
+        sa.Column(
+            "name",
+            sa.String(length=255),
+            nullable=False,
+        ),
+        sa.Column(
+            "description",
+            sa.Text(),
+            nullable=True,
+        ),
+        sa.Column(
+            "artwork_url",
+            sa.Text(),
+            nullable=True,
+        ),
+        sa.Column(
+            "is_public",
+            sa.Boolean(),
+            nullable=False,
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+    op.create_index(
+        "ix_playlists_user_id",
+        "playlists",
+        ["user_id"],
+    )
+
+    op.create_table(
+        "queue",
+        sa.Column(
+            "id",
+            sa.Integer(),
+            autoincrement=True,
+            nullable=False,
+        ),
+        sa.Column(
+            "user_id",
+            sa.Integer(),
+            nullable=False,
+        ),
+        sa.Column(
+            "track_id",
+            sa.Integer(),
+            nullable=False,
+        ),
+        sa.Column(
+            "position",
+            sa.Integer(),
+            nullable=False,
+        ),
+        sa.Column(
+            "added_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["track_id"],
+            ["tracks.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "user_id",
+            "position",
+            name="uq_queue_user_position",
+        ),
+    )
+
+    op.create_index(
+        "ix_queue_user_id",
+        "queue",
+        ["user_id"],
+    )
+
+    op.create_index(
+        "ix_queue_track_id",
+        "queue",
+        ["track_id"],
+    )
+
+    op.create_table(
+        "playback_states",
+        sa.Column(
+            "id",
+            sa.Integer(),
+            autoincrement=True,
+            nullable=False,
+        ),
+        sa.Column(
+            "user_id",
+            sa.Integer(),
+            nullable=False,
+        ),
+        sa.Column(
+            "track_id",
+            sa.Integer(),
+            nullable=True,
+        ),
+        sa.Column(
+            "position_ms",
+            sa.Integer(),
+            nullable=False,
+        ),
+        sa.Column(
+            "is_playing",
+            sa.Boolean(),
+            nullable=False,
+        ),
+        sa.Column(
+            "volume",
+            sa.Float(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["track_id"],
+            ["tracks.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "user_id",
+            name="uq_playback_state_user",
+        ),
+    )
+
+    op.create_index(
+        "ix_playback_states_user_id",
+        "playback_states",
+        ["user_id"],
+    )
+
+    op.create_index(
+        "ix_playback_states_track_id",
+        "playback_states",
+        ["track_id"],
+    )
+
+    op.create_table(
+        "playlist_tracks",
+        sa.Column(
+            "id",
+            sa.Integer(),
+            autoincrement=True,
+            nullable=False,
+        ),
+        sa.Column(
+            "playlist_id",
+            sa.Integer(),
+            nullable=False,
+        ),
+        sa.Column(
+            "track_id",
+            sa.Integer(),
+            nullable=False,
+        ),
+        sa.Column(
+            "position",
+            sa.Integer(),
+            nullable=False,
+        ),
+        sa.Column(
+            "added_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["playlist_id"],
+            ["playlists.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["track_id"],
+            ["tracks.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "playlist_id",
+            "track_id",
+            name="uq_playlist_track",
+        ),
+        sa.UniqueConstraint(
+            "playlist_id",
+            "position",
+            name="uq_playlist_position",
+        ),
+    )
+
+    op.create_index(
+        "ix_playlist_tracks_playlist_id",
+        "playlist_tracks",
+        ["playlist_id"],
+    )
+
+    op.create_index(
+        "ix_playlist_tracks_track_id",
+        "playlist_tracks",
+        ["track_id"],
+    )
+
+
+def downgrade() -> None:
+    op.drop_index(
+        "ix_playlist_tracks_track_id",
+        table_name="playlist_tracks",
+    )
+
+    op.drop_index(
+        "ix_playlist_tracks_playlist_id",
+        table_name="playlist_tracks",
+    )
+
+    op.drop_table("playlist_tracks")
+
+    op.drop_index(
+        "ix_playback_states_track_id",
+        table_name="playback_states",
+    )
+
+    op.drop_index(
+        "ix_playback_states_user_id",
+        table_name="playback_states",
+    )
+
+    op.drop_table("playback_states")
+
+    op.drop_index(
+        "ix_queue_track_id",
+        table_name="queue",
+    )
+
+    op.drop_index(
+        "ix_queue_user_id",
+        table_name="queue",
+    )
+
+    op.drop_table("queue")
+
+    op.drop_index(
+        "ix_playlists_user_id",
+        table_name="playlists",
+    )
+
+    op.drop_table("playlists")
+
+    op.drop_table("tracks")
+    op.drop_table("albums")
+    op.drop_table("artists")
+
+    op.drop_index(
+        "ix_users_username",
+        table_name="users",
+    )
+
+    op.drop_index(
+        "ix_users_email",
+        table_name="users",
+    )
+
+    op.drop_table("users")
