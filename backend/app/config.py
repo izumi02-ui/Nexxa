@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
 
     database_url: str = Field(
-        default="postgresql+psycopg://nexxa:nexxa@localhost:5432/nexxa",
+        min_length=1,
     )
 
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
