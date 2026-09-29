@@ -49,7 +49,7 @@
 ## Phase 3 — Providers
 
 - [x] Spotify
-- [ ] YouTube
+- [x] YouTube
 - [ ] YouTube Music
 - [ ] JioSaavn
 
