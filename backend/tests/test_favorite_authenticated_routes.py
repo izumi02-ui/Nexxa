@@ -25,6 +25,7 @@ def test_app() -> Generator[FastAPI, None, None]:
             username="routeuser",
             is_active=True,
         )
+
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -46,15 +47,14 @@ def test_app() -> Generator[FastAPI, None, None]:
 def test_authenticated_user_can_list_empty_favorites(
     test_app: FastAPI,
 ) -> None:
-    with Session(create_engine("sqlite:///:memory:")):
-        pass
-
     with TestClient(test_app) as client:
         token = create_access_token(user_id=1)
 
         response = client.get(
             "/api/v1/favorites",
-            headers={"Authorization": f"Bearer {token}"},
+            headers={
+                "Authorization": f"Bearer {token}",
+            },
         )
 
         assert response.status_code == 200
@@ -70,7 +70,9 @@ def test_authenticated_user_can_add_favorite(
         response = client.post(
             "/api/v1/favorites",
             json={"track_id": 42},
-            headers={"Authorization": f"Bearer {token}"},
+            headers={
+                "Authorization": f"Bearer {token}",
+            },
         )
 
         assert response.status_code == 201
@@ -87,14 +89,18 @@ def test_authenticated_user_can_delete_favorite(
         create_response = client.post(
             "/api/v1/favorites",
             json={"track_id": 55},
-            headers={"Authorization": f"Bearer {token}"},
+            headers={
+                "Authorization": f"Bearer {token}",
+            },
         )
 
         assert create_response.status_code == 201
 
         delete_response = client.delete(
             "/api/v1/favorites/55",
-            headers={"Authorization": f"Bearer {token}"},
+            headers={
+                "Authorization": f"Bearer {token}",
+            },
         )
 
         assert delete_response.status_code == 204
