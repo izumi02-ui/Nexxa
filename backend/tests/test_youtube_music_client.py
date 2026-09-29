@@ -1,22 +1,111 @@
 import pytest
 
-from app.providers.youtube_music.client import (
-    YouTubeMusicClient,
-    YouTubeMusicUnsupportedError,
-)
+from app.providers.youtube.client import YouTubeVideo
+from app.providers.youtube_music.client import YouTubeMusicClient
+
+
+class FakeYouTubeClient:
+    async def search_videos(
+        self,
+        query: str,
+        limit: int = 20,
+        page_token: str | None = None,
+    ) -> tuple[list[YouTubeVideo], str | None]:
+        return (
+            [
+                YouTubeVideo(
+                    video_id="video-1",
+                    title="Test Song",
+                    channel_name="Test Artist",
+                    description="Test description",
+                    thumbnail_url="https://example.com/thumb.jpg",
+                    duration="PT3M30S",
+                    url="https://www.youtube.com/watch?v=video-1",
+                )
+            ],
+            None,
+        )
+
+    async def get_video(
+        self,
+        external_id: str,
+    ) -> YouTubeVideo | None:
+        if external_id != "video-1":
+            return None
+
+        return YouTubeVideo(
+            video_id="video-1",
+            title="Test Song",
+            channel_name="Test Artist",
+            description="Test description",
+            thumbnail_url="https://example.com/thumb.jpg",
+            duration="PT3M30S",
+            url="https://www.youtube.com/watch?v=video-1",
+        )
 
 
 @pytest.mark.asyncio
-async def test_search_tracks_raises_unsupported_error() -> None:
-    client = YouTubeMusicClient()
+async def test_search_tracks_uses_youtube_data_api_client() -> None:
+    client = YouTubeMusicClient(
+        youtube_client=FakeYouTubeClient(),
+    )
 
-    with pytest.raises(YouTubeMusicUnsupportedError):
-        await client.search_tracks("test")
+    results = await client.search_tracks(
+        query="Test Song",
+        limit=10,
+    )
+
+    assert len(results) == 1
+    assert results[0]["external_id"] == "video-1"
+    assert results[0]["title"] == "Test Song"
+    assert results[0]["artist_name"] == "Test Artist"
+    assert results[0]["album_name"] is None
+    assert results[0]["duration_ms"] is None
+    assert results[0]["artwork_url"] == "https://example.com/thumb.jpg"
+    assert results[0]["external_url"] == (
+        "https://www.youtube.com/watch?v=video-1"
+    )
 
 
 @pytest.mark.asyncio
-async def test_get_track_raises_unsupported_error() -> None:
-    client = YouTubeMusicClient()
+async def test_get_track_uses_youtube_data_api_client() -> None:
+    client = YouTubeMusicClient(
+        youtube_client=FakeYouTubeClient(),
+    )
 
-    with pytest.raises(YouTubeMusicUnsupportedError):
-        await client.get_track("test-track")
+    result = await client.get_track("video-1")
+
+    assert result is not None
+    assert result["external_id"] == "video-1"
+    assert result["title"] == "Test Song"
+    assert result["artist_name"] == "Test Artist"
+    assert result["album_name"] is None
+    assert result["duration_ms"] == 210000
+    assert result["artwork_url"] == "https://example.com/thumb.jpg"
+    assert result["external_url"] == (
+        "https://www.youtube.com/watch?v=video-1"
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_track_returns_none_when_video_is_missing() -> None:
+    client = YouTubeMusicClient(
+        youtube_client=FakeYouTubeClient(),
+    )
+
+    result = await client.get_track("missing-video")
+
+    assert result is None
+
+
+def test_duration_to_ms() -> None:
+    assert YouTubeMusicClient._duration_to_ms("PT3M30S") == 210000
+    assert YouTubeMusicClient._duration_to_ms("PT1H2M3S") == 3723000
+    assert YouTubeMusicClient._duration_to_ms("PT45S") == 45000
+
+
+def test_duration_to_ms_invalid_values() -> None:
+    assert YouTubeMusicClient._duration_to_ms(None) is None
+    assert YouTubeMusicClient._duration_to_ms("") is None
+    assert YouTubeMusicClient._duration_to_ms("invalid") is None
+    assert YouTubeMusicClient._duration_to_ms("PT3") is None
