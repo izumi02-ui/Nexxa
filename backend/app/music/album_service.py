@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.music.album_models import Album
 from app.music.album_schemas import AlbumCreate
+from app.music.models import Track
 
 
 def create_album(
@@ -68,6 +69,25 @@ def list_albums_by_artist(
             .order_by(
                 Album.title.asc(),
                 Album.id.asc(),
+            )
+        ).all()
+    )
+
+
+def list_album_tracks(
+    db: Session,
+    album_id: int,
+) -> list[Track]:
+    """Return all tracks belonging to an album in stable ID order."""
+
+    return list(
+        db.scalars(
+            select(Track)
+            .where(
+                Track.album_id == album_id,
+            )
+            .order_by(
+                Track.id.asc(),
             )
         ).all()
     )
