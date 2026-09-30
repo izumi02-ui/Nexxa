@@ -1,7 +1,14 @@
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.recommendations.routes import router
 
+
+app = FastAPI()
+app.include_router(
+    router,
+    prefix="/api/v1",
+)
 
 client = TestClient(app)
 
