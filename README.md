@@ -92,7 +92,7 @@ Provider Layer
     +---- Spotify
     +---- YouTube
     +---- YouTube Music
-    +---- JioSaavn
+    +---- Apple Music
     |
     v
 Database / Cache / Storage
