@@ -8,26 +8,30 @@ def test_album_routes_are_registered() -> None:
     app.include_router(api_router)
 
     routes = {
-        (route.path, tuple(route.methods or []))
+        (
+            route.path,
+            frozenset(route.methods or set()),
+        )
         for route in app.routes
+        if hasattr(route, "path")
     }
 
     assert (
         "/api/v1/albums",
-        ("POST",),
+        frozenset({"POST"}),
     ) in routes
 
     assert (
         "/api/v1/albums",
-        ("GET",),
+        frozenset({"GET"}),
     ) in routes
 
     assert (
         "/api/v1/albums/{album_id}",
-        ("GET",),
+        frozenset({"GET"}),
     ) in routes
 
     assert (
         "/api/v1/albums/{album_id}/tracks",
-        ("GET",),
+        frozenset({"GET"}),
     ) in routes
