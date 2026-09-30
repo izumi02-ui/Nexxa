@@ -1,20 +1,26 @@
-from fastapi import FastAPI
-
 from app.recommendations.routes import router
 
 
-def test_recommendations_routes_are_registered():
-    app = FastAPI()
-    app.include_router(
-        router,
-        prefix="/api/v1",
-    )
+def test_recommendations_route_is_registered():
+    routes = [
+        route
+        for route in router.routes
+        if getattr(route, "path", None) == "/recommendations"
+    ]
 
-    paths = {
-        route.path: set(route.methods or set())
-        for route in app.routes
-        if hasattr(route, "path")
-    }
+    assert routes
 
-    assert "/api/v1/recommendations" in paths
-    assert "GET" in paths["/api/v1/recommendations"]
+    route = routes[0]
+
+    assert "GET" in route.methods
+
+
+def test_recommendations_route_has_expected_endpoint():
+    routes = [
+        route
+        for route in router.routes
+        if getattr(route, "path", None) == "/recommendations"
+    ]
+
+    assert len(routes) == 1
+    assert routes[0].endpoint.__name__ == "recommendations"
