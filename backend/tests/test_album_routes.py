@@ -71,3 +71,46 @@ def test_create_album(
         assert body["artist_id"] == test_app.state.artist_id
         assert body["artwork_url"] is None
         assert body["release_date"] is None
+
+
+def test_get_album(
+    test_app: FastAPI,
+) -> None:
+    with TestClient(test_app) as client:
+        create_response = client.post(
+            "/api/v1/albums",
+            json={
+                "title": "Get Test Album",
+                "artist_id": test_app.state.artist_id,
+            },
+        )
+
+        assert create_response.status_code == 201
+
+        album_id = create_response.json()["id"]
+
+        response = client.get(
+            f"/api/v1/albums/{album_id}",
+        )
+
+        assert response.status_code == 200
+
+        body = response.json()
+
+        assert body["id"] == album_id
+        assert body["title"] == "Get Test Album"
+        assert body["artist_id"] == test_app.state.artist_id
+        assert body["artwork_url"] is None
+        assert body["release_date"] is None
+
+
+def test_get_missing_album_returns_404(
+    test_app: FastAPI,
+) -> None:
+    with TestClient(test_app) as client:
+        response = client.get(
+            "/api/v1/albums/999999",
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Album not found"
