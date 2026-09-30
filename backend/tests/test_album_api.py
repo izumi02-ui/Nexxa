@@ -39,6 +39,7 @@ def test_app() -> Generator[FastAPI, None, None]:
         app.include_router(api_router)
 
         app.state.artist_id = artist.id
+        app.state.db = db
 
         def override_get_db() -> Generator[Session, None, None]:
             yield db
@@ -83,6 +84,8 @@ def test_get_album_api(
             },
         )
 
+        assert create_response.status_code == 201
+
         album_id = create_response.json()["id"]
 
         response = client.get(
@@ -97,7 +100,10 @@ def test_list_albums_api(
     test_app: FastAPI,
 ) -> None:
     with TestClient(test_app) as client:
-        for title in ("First API Album", "Second API Album"):
+        for title in (
+            "First API Album",
+            "Second API Album",
+        ):
             response = client.post(
                 "/api/v1/albums",
                 json={
@@ -130,17 +136,17 @@ def test_album_tracks_api(
 
         album_id = create_response.json()["id"]
 
-        with Session(
-            next(iter(test_app.dependency_overrides.values()))()
-        ) as db:
-            track = Track(
-                title="API Track",
-                artist_id=test_app.state.artist_id,
-                album_id=album_id,
-            )
+        db: Session = test_app.state.db
 
-            db.add(track)
-            db.commit()
+        track = Track(
+            title="API Track",
+            artist_id=test_app.state.artist_id,
+            album_id=album_id,
+        )
+
+        db.add(track)
+        db.commit()
+        db.refresh(track)
 
         response = client.get(
             f"/api/v1/albums/{album_id}/tracks",
