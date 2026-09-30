@@ -16,6 +16,8 @@ def test_album_create_accepts_valid_data() -> None:
 
     assert album.title == "Valid Album"
     assert album.artist_id == 1
+    assert album.artwork_url == "https://example.com/artwork.jpg"
+    assert album.release_date == date(2026, 1, 1)
 
 
 def test_album_title_cannot_be_empty() -> None:
