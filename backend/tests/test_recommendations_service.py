@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.database.base import Base
+from app.music.favorite_models import Favorite
+from app.music.history_models import HistoryEntry
 from app.music.models import Track
 from app.recommendations.service import get_recommendations
 
@@ -27,6 +29,7 @@ def test_recommendations_returns_empty_for_zero_limit() -> None:
     try:
         result = get_recommendations(
             db=db,
+            user_id=1,
             limit=0,
         )
 
@@ -35,109 +38,151 @@ def test_recommendations_returns_empty_for_zero_limit() -> None:
         db.close()
 
 
-def test_recommendations_returns_tracks_when_no_source_ids() -> None:
+def test_recommendations_are_user_specific() -> None:
     db = create_test_db()
 
     try:
+        tracks = [
+            Track(title="User One Track", artist_id=1),
+            Track(title="User Two Track", artist_id=2),
+            Track(title="Recommended For User One", artist_id=1),
+            Track(title="Recommended For User Two", artist_id=2),
+        ]
+
+        db.add_all(tracks)
+        db.commit()
+
         db.add_all(
             [
-                Track(
-                    title="Track One",
-                    artist_id=1,
+                Favorite(
+                    user_id=1,
+                    track_id=tracks[0].id,
                 ),
-                Track(
-                    title="Track Two",
-                    artist_id=1,
+                Favorite(
+                    user_id=2,
+                    track_id=tracks[1].id,
                 ),
             ]
         )
         db.commit()
 
-        result = get_recommendations(
+        user_one = get_recommendations(
             db=db,
-            limit=20,
+            user_id=1,
+            limit=10,
         )
 
-        assert len(result) == 2
-        assert result[0].title == "Track One"
-        assert result[1].title == "Track Two"
+        user_two = get_recommendations(
+            db=db,
+            user_id=2,
+            limit=10,
+        )
+
+        user_one_ids = {track.id for track in user_one}
+        user_two_ids = {track.id for track in user_two}
+
+        assert tracks[0].id not in user_one_ids
+        assert tracks[1].id not in user_two_ids
+
+        assert tracks[2].id in user_one_ids
+        assert tracks[3].id in user_two_ids
+
+        assert user_one_ids != user_two_ids
     finally:
         db.close()
 
 
-def test_recommendations_excludes_source_tracks() -> None:
+def test_recommendations_use_user_history() -> None:
     db = create_test_db()
 
     try:
         source = Track(
-            title="Source Track",
-            artist_id=1,
+            title="Recently Played",
+            artist_id=10,
+            album_id=100,
         )
-        other = Track(
-            title="Other Track",
-            artist_id=1,
-        )
-
-        db.add_all([source, other])
-        db.commit()
-        db.refresh(source)
-
-        result = get_recommendations(
-            db=db,
-            track_ids=[source.id],
-            limit=20,
-        )
-
-        assert all(track.id != source.id for track in result)
-        assert any(track.id == other.id for track in result)
-    finally:
-        db.close()
-
-
-def test_recommendations_prioritize_same_album() -> None:
-    db = create_test_db()
-
-    try:
-        source = Track(
-            title="Source Track",
-            artist_id=1,
-            album_id=10,
-        )
-        same_album = Track(
-            title="Same Album",
-            artist_id=2,
-            album_id=10,
-        )
-        same_artist = Track(
-            title="Same Artist",
-            artist_id=1,
-            album_id=20,
+        recommended = Track(
+            title="Related Track",
+            artist_id=10,
+            album_id=200,
         )
         unrelated = Track(
-            title="Unrelated",
-            artist_id=3,
-            album_id=30,
+            title="Unrelated Track",
+            artist_id=20,
+            album_id=300,
         )
 
         db.add_all(
             [
                 source,
-                same_album,
-                same_artist,
+                recommended,
                 unrelated,
             ]
         )
         db.commit()
-        db.refresh(source)
+
+        db.add(
+            HistoryEntry(
+                user_id=1,
+                track_id=source.id,
+            )
+        )
+        db.commit()
 
         result = get_recommendations(
             db=db,
-            track_ids=[source.id],
-            limit=3,
+            user_id=1,
+            limit=10,
         )
 
-        assert result[0].id == same_album.id
-        assert result[1].id == same_artist.id
-        assert result[2].id == unrelated.id
+        result_ids = {track.id for track in result}
+
+        assert source.id not in result_ids
+        assert recommended.id in result_ids
+    finally:
+        db.close()
+
+
+def test_recommendations_use_user_favorites() -> None:
+    db = create_test_db()
+
+    try:
+        favorite_track = Track(
+            title="Favorite",
+            artist_id=5,
+            album_id=50,
+        )
+        related_track = Track(
+            title="Related",
+            artist_id=5,
+            album_id=60,
+        )
+
+        db.add_all(
+            [
+                favorite_track,
+                related_track,
+            ]
+        )
+        db.commit()
+
+        db.add(
+            Favorite(
+                user_id=7,
+                track_id=favorite_track.id,
+            )
+        )
+        db.commit()
+
+        result = get_recommendations(
+            db=db,
+            user_id=7,
+            limit=10,
+        )
+
+        result_ids = {track.id for track in result}
+
+        assert favorite_track.id not in result_ids
+        assert related_track.id in result_ids
     finally:
         db.close()
