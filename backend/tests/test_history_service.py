@@ -6,7 +6,10 @@ from sqlalchemy.orm import Session
 from app.auth.models import User
 from app.database.base import Base
 from app.music.history_models import HistoryEntry
-from app.music.history_service import create_history_entry
+from app.music.history_service import (
+    create_history_entry,
+    list_history,
+)
 
 
 def create_test_database():
@@ -154,3 +157,144 @@ def test_history_entries_belong_to_correct_users() -> None:
         assert first.user_id == user_one.id
         assert second.user_id == user_two.id
         assert first.user_id != second.user_id
+
+
+def test_list_history_returns_user_history() -> None:
+    engine = create_test_database()
+
+    with Session(engine) as db:
+        user = User(
+            email="history-list@example.com",
+            password_hash="hashed-password",
+        )
+
+        db.add(user)
+        db.flush()
+
+        first = create_history_entry(
+            db=db,
+            user_id=user.id,
+            track_id=1,
+        )
+
+        second = create_history_entry(
+            db=db,
+            user_id=user.id,
+            track_id=2,
+        )
+
+        db.flush()
+
+        entries = list_history(
+            db=db,
+            user_id=user.id,
+        )
+
+        assert len(entries) == 2
+
+        entry_ids = {
+            entry.id
+            for entry in entries
+        }
+
+        assert first.id in entry_ids
+        assert second.id in entry_ids
+
+
+def test_list_history_returns_newest_first() -> None:
+    engine = create_test_database()
+
+    with Session(engine) as db:
+        user = User(
+            email="history-order@example.com",
+            password_hash="hashed-password",
+        )
+
+        db.add(user)
+        db.flush()
+
+        first = create_history_entry(
+            db=db,
+            user_id=user.id,
+            track_id=1,
+        )
+
+        db.flush()
+
+        second = create_history_entry(
+            db=db,
+            user_id=user.id,
+            track_id=2,
+        )
+
+        db.flush()
+
+        entries = list_history(
+            db=db,
+            user_id=user.id,
+        )
+
+        assert len(entries) == 2
+        assert entries[0].id == second.id
+        assert entries[1].id == first.id
+
+
+def test_list_history_returns_empty_for_user_without_history() -> None:
+    engine = create_test_database()
+
+    with Session(engine) as db:
+        user = User(
+            email="history-empty@example.com",
+            password_hash="hashed-password",
+        )
+
+        db.add(user)
+        db.flush()
+
+        entries = list_history(
+            db=db,
+            user_id=user.id,
+        )
+
+        assert entries == []
+
+
+def test_list_history_only_returns_current_users_entries() -> None:
+    engine = create_test_database()
+
+    with Session(engine) as db:
+        user_one = User(
+            email="history-list-one@example.com",
+            password_hash="hashed-password",
+        )
+
+        user_two = User(
+            email="history-list-two@example.com",
+            password_hash="hashed-password",
+        )
+
+        db.add_all([user_one, user_two])
+        db.flush()
+
+        create_history_entry(
+            db=db,
+            user_id=user_one.id,
+            track_id=10,
+        )
+
+        create_history_entry(
+            db=db,
+            user_id=user_two.id,
+            track_id=20,
+        )
+
+        db.flush()
+
+        entries = list_history(
+            db=db,
+            user_id=user_one.id,
+        )
+
+        assert len(entries) == 1
+        assert entries[0].user_id == user_one.id
+        assert entries[0].track_id == 10
