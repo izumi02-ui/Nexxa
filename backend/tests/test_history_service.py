@@ -40,6 +40,8 @@ def test_create_history_entry() -> None:
             duration_ms=240_000,
         )
 
+        db.flush()
+
         assert entry.id is not None
         assert entry.user_id == user.id
         assert entry.track_id == 1
@@ -67,6 +69,8 @@ def test_create_history_entry_sets_played_at() -> None:
             track_id=1,
         )
 
+        db.flush()
+
         after = datetime.now(timezone.utc)
 
         assert entry.played_at is not None
@@ -90,6 +94,8 @@ def test_create_history_entry_allows_missing_playback_position() -> None:
             user_id=user.id,
             track_id=5,
         )
+
+        db.flush()
 
         assert entry.position_ms is None
         assert entry.duration_ms is None
@@ -118,6 +124,8 @@ def test_create_multiple_history_entries() -> None:
             user_id=user.id,
             track_id=2,
         )
+
+        db.flush()
 
         assert first.id is not None
         assert second.id is not None
@@ -155,6 +163,8 @@ def test_history_entries_belong_to_correct_users() -> None:
             user_id=user_two.id,
             track_id=20,
         )
+
+        db.flush()
 
         assert first.user_id == user_one.id
         assert second.user_id == user_two.id
