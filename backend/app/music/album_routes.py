@@ -3,7 +3,12 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.music.album_schemas import AlbumCreate, AlbumResponse
-from app.music.album_service import create_album, get_album, list_albums
+from app.music.album_service import (
+    create_album,
+    get_album,
+    list_album_tracks,
+    list_albums,
+)
 
 router = APIRouter(
     prefix="/albums",
@@ -66,3 +71,27 @@ def get_album_by_id(
         )
 
     return AlbumResponse.model_validate(album)
+
+
+@router.get(
+    "/{album_id}/tracks",
+)
+def get_album_tracks(
+    album_id: int,
+    db: Session = Depends(get_db),
+):
+    album = get_album(
+        db=db,
+        album_id=album_id,
+    )
+
+    if album is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Album not found",
+        )
+
+    return list_album_tracks(
+        db=db,
+        album_id=album_id,
+    )
