@@ -1,22 +1,73 @@
+from collections.abc import Generator
+
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 from app.api.router import api_router
+from app.database.base import Base
+from app.database.session import get_db
+from app.music.artist_models import Artist
 
 
-app = FastAPI()
-app.include_router(api_router)
-
-
-def test_create_album_requires_valid_artist() -> None:
-    client = TestClient(app)
-
-    response = client.post(
-        "/api/v1/albums",
-        json={
-            "title": "Test Album",
-            "artist_id": 999999,
+@pytest.fixture
+def test_app() -> Generator[FastAPI, None, None]:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={
+            "check_same_thread": False,
         },
+        poolclass=StaticPool,
     )
 
-    assert response.status_code in {400, 404, 422, 500}
+    Base.metadata.create_all(engine)
+
+    with Session(engine) as db:
+        artist = Artist(
+            name="Album Test Artist",
+        )
+
+        db.add(artist)
+        db.commit()
+        db.refresh(artist)
+
+        app = FastAPI()
+        app.include_router(api_router)
+
+        app.state.artist_id = artist.id
+
+        def override_get_db() -> Generator[Session, None, None]:
+            yield db
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        try:
+            yield app
+        finally:
+            app.dependency_overrides.clear()
+
+
+def test_create_album(
+    test_app: FastAPI,
+) -> None:
+    with TestClient(test_app) as client:
+        response = client.post(
+            "/api/v1/albums",
+            json={
+                "title": "Test Album",
+                "artist_id": test_app.state.artist_id,
+            },
+        )
+
+        assert response.status_code == 201
+
+        body = response.json()
+
+        assert body["id"] >= 1
+        assert body["title"] == "Test Album"
+        assert body["artist_id"] == test_app.state.artist_id
+        assert body["artwork_url"] is None
+        assert body["release_date"] is None
