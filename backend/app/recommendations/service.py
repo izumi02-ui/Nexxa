@@ -1,102 +1,107 @@
 from collections import Counter
-from collections.abc import Iterable
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.music.favorite_models import Favorite
+from app.music.history_models import HistoryEntry
 from app.music.models import Track
 
 
 def get_recommendations(
     db: Session,
-    track_ids: Iterable[int] | None = None,
+    user_id: int,
     limit: int = 20,
 ) -> list[Track]:
-    """
-    Return deterministic track recommendations based on the user's
-    existing track selections.
-
-    Tracks sharing an artist or album with the supplied tracks are
-    preferred. Already supplied tracks are excluded.
-    """
     if limit <= 0:
         return []
 
-    source_ids = {
-        track_id
-        for track_id in (track_ids or [])
-        if isinstance(track_id, int) and track_id > 0
-    }
-
-    if not source_ids:
-        return (
-            db.query(Track)
-            .order_by(Track.id)
-            .limit(limit)
-            .all()
-        )
-
-    source_tracks = (
-        db.query(Track)
-        .filter(Track.id.in_(source_ids))
-        .all()
+    history = list(
+        db.scalars(
+            select(HistoryEntry)
+            .where(HistoryEntry.user_id == user_id)
+            .order_by(
+                HistoryEntry.played_at.desc(),
+                HistoryEntry.id.desc(),
+            )
+        ).all()
     )
 
-    if not source_tracks:
-        return (
-            db.query(Track)
-            .order_by(Track.id)
-            .limit(limit)
-            .all()
-        )
+    favorites = list(
+        db.scalars(
+            select(Favorite)
+            .where(Favorite.user_id == user_id)
+            .order_by(
+                Favorite.created_at.desc(),
+                Favorite.id.desc(),
+            )
+        ).all()
+    )
 
-    artist_ids = {
-        track.artist_id
-        for track in source_tracks
-        if track.artist_id is not None
+    source_track_ids = {
+        entry.track_id
+        for entry in history
+    } | {
+        favorite.track_id
+        for favorite in favorites
     }
 
-    album_ids = {
+    if not source_track_ids:
+        return (
+            db.scalars(
+                select(Track)
+                .order_by(Track.id)
+                .limit(limit)
+            ).all()
+        )
+
+    source_tracks = list(
+        db.scalars(
+            select(Track).where(
+                Track.id.in_(source_track_ids)
+            )
+        ).all()
+    )
+
+    artist_scores = Counter(
+        track.artist_id
+        for track in source_tracks
+    )
+
+    album_scores = Counter(
         track.album_id
         for track in source_tracks
         if track.album_id is not None
-    }
-
-    candidates = (
-        db.query(Track)
-        .filter(~Track.id.in_(source_ids))
-        .all()
     )
 
-    source_artist_counts = Counter(
-        track.artist_id
-        for track in source_tracks
-        if track.artist_id is not None
+    candidates = list(
+        db.scalars(
+            select(Track).where(
+                ~Track.id.in_(source_track_ids)
+            )
+        ).all()
     )
 
-    source_album_counts = Counter(
-        track.album_id
-        for track in source_tracks
-        if track.album_id is not None
-    )
-
-    def score(track: Track) -> tuple[int, int]:
-        artist_score = (
-            source_artist_counts.get(track.artist_id, 0)
-            if track.artist_id in artist_ids
-            else 0
+    def score(track: Track) -> tuple[int, int, int]:
+        artist_score = artist_scores.get(
+            track.artist_id,
+            0,
         )
 
-        album_score = (
-            source_album_counts.get(track.album_id, 0)
-            if track.album_id in album_ids
-            else 0
+        album_score = album_scores.get(
+            track.album_id,
+            0,
         )
 
         return (
             album_score * 3 + artist_score * 2,
+            artist_score,
             -track.id,
         )
 
-    candidates.sort(key=score, reverse=True)
+    candidates.sort(
+        key=score,
+        reverse=True,
+    )
 
     return candidates[:limit]
