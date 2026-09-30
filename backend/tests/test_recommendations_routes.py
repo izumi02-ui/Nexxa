@@ -1,16 +1,17 @@
 from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 from app.api.router import api_router
 
 
-def test_recommendations_routes_are_registered():
-    app = FastAPI()
-    app.include_router(api_router)
+app = FastAPI()
+app.include_router(api_router)
 
-    paths = {
-        route.path: set(route.methods or set())
-        for route in app.routes
-    }
+client = TestClient(app)
 
-    assert "/api/v1/recommendations" in paths
-    assert "GET" in paths["/api/v1/recommendations"]
+
+def test_recommendations_route_requires_authentication():
+    response = client.get("/api/v1/recommendations")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Authentication required"
