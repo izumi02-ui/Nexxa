@@ -1,33 +1,27 @@
-from datetime import datetime
+from datetime import date
 
-from pydantic import Field
-
-from app.validation.common import NEXXABaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class AlbumCreate(NEXXABaseModel):
-    """Validated data required to create an album."""
-
+class AlbumCreate(BaseModel):
     title: str = Field(
         min_length=1,
         max_length=500,
     )
-
-    artist_id: int | None = Field(
-        default=None,
-        ge=1,
+    artist_id: int = Field(
+        gt=0,
     )
-
     artwork_url: str | None = None
+    release_date: date | None = None
 
-    release_date: datetime | None = None
 
-
-class AlbumResponse(NEXXABaseModel):
-    """API representation of an album."""
+class AlbumResponse(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
     id: int
     title: str
-    artist_id: int | None
+    artist_id: int
     artwork_url: str | None
-    release_date: datetime | None
+    release_date: date | None
