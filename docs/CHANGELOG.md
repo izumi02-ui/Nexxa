@@ -111,6 +111,20 @@
 - Added history validation and edge-case tests.
 - Added history API route registration tests.
 
+#### Albums
+
+- Added album creation functionality.
+- Added album retrieval functionality.
+- Added album listing functionality.
+- Added album tracks endpoint.
+- Added album validation.
+- Added album service tests.
+- Added album API tests.
+- Added album validation tests.
+- Added album API route registration tests.
+- Added album database documentation.
+- Added album API documentation.
+  
 ---
 
 Only record actual project changes here.
