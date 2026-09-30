@@ -7,7 +7,9 @@ from app.auth.models import User
 from app.database.base import Base
 from app.music.history_models import HistoryEntry
 from app.music.history_service import (
+    clear_history,
     create_history_entry,
+    delete_history_entry,
     list_history,
 )
 
@@ -298,3 +300,230 @@ def test_list_history_only_returns_current_users_entries() -> None:
         assert len(entries) == 1
         assert entries[0].user_id == user_one.id
         assert entries[0].track_id == 10
+
+
+def test_delete_history_entry() -> None:
+    engine = create_test_database()
+
+    with Session(engine) as db:
+        user = User(
+            email="history-delete@example.com",
+            password_hash="hashed-password",
+        )
+
+        db.add(user)
+        db.flush()
+
+        entry = create_history_entry(
+            db=db,
+            user_id=user.id,
+            track_id=1,
+        )
+
+        db.flush()
+
+        deleted = delete_history_entry(
+            db=db,
+            user_id=user.id,
+            history_id=entry.id,
+        )
+
+        assert deleted is True
+
+        db.flush()
+
+        entries = list_history(
+            db=db,
+            user_id=user.id,
+        )
+
+        assert entries == []
+
+
+def test_delete_history_entry_returns_false_when_missing() -> None:
+    engine = create_test_database()
+
+    with Session(engine) as db:
+        user = User(
+            email="history-delete-missing@example.com",
+            password_hash="hashed-password",
+        )
+
+        db.add(user)
+        db.flush()
+
+        deleted = delete_history_entry(
+            db=db,
+            user_id=user.id,
+            history_id=999999,
+        )
+
+        assert deleted is False
+
+
+def test_delete_history_entry_does_not_delete_another_users_entry() -> None:
+    engine = create_test_database()
+
+    with Session(engine) as db:
+        owner = User(
+            email="history-owner@example.com",
+            password_hash="hashed-password",
+        )
+
+        other_user = User(
+            email="history-other@example.com",
+            password_hash="hashed-password",
+        )
+
+        db.add_all([owner, other_user])
+        db.flush()
+
+        entry = create_history_entry(
+            db=db,
+            user_id=owner.id,
+            track_id=1,
+        )
+
+        db.flush()
+
+        deleted = delete_history_entry(
+            db=db,
+            user_id=other_user.id,
+            history_id=entry.id,
+        )
+
+        assert deleted is False
+
+        remaining = list_history(
+            db=db,
+            user_id=owner.id,
+        )
+
+        assert len(remaining) == 1
+        assert remaining[0].id == entry.id
+
+
+def test_clear_history() -> None:
+    engine = create_test_database()
+
+    with Session(engine) as db:
+        user = User(
+            email="history-clear@example.com",
+            password_hash="hashed-password",
+        )
+
+        db.add(user)
+        db.flush()
+
+        create_history_entry(
+            db=db,
+            user_id=user.id,
+            track_id=1,
+        )
+
+        create_history_entry(
+            db=db,
+            user_id=user.id,
+            track_id=2,
+        )
+
+        create_history_entry(
+            db=db,
+            user_id=user.id,
+            track_id=3,
+        )
+
+        db.flush()
+
+        deleted_count = clear_history(
+            db=db,
+            user_id=user.id,
+        )
+
+        assert deleted_count == 3
+
+        entries = list_history(
+            db=db,
+            user_id=user.id,
+        )
+
+        assert entries == []
+
+
+def test_clear_history_returns_zero_when_empty() -> None:
+    engine = create_test_database()
+
+    with Session(engine) as db:
+        user = User(
+            email="history-clear-empty@example.com",
+            password_hash="hashed-password",
+        )
+
+        db.add(user)
+        db.flush()
+
+        deleted_count = clear_history(
+            db=db,
+            user_id=user.id,
+        )
+
+        assert deleted_count == 0
+
+
+def test_clear_history_does_not_delete_another_users_entries() -> None:
+    engine = create_test_database()
+
+    with Session(engine) as db:
+        user_one = User(
+            email="history-clear-one@example.com",
+            password_hash="hashed-password",
+        )
+
+        user_two = User(
+            email="history-clear-two@example.com",
+            password_hash="hashed-password",
+        )
+
+        db.add_all([user_one, user_two])
+        db.flush()
+
+        create_history_entry(
+            db=db,
+            user_id=user_one.id,
+            track_id=1,
+        )
+
+        create_history_entry(
+            db=db,
+            user_id=user_one.id,
+            track_id=2,
+        )
+
+        create_history_entry(
+            db=db,
+            user_id=user_two.id,
+            track_id=3,
+        )
+
+        db.flush()
+
+        deleted_count = clear_history(
+            db=db,
+            user_id=user_one.id,
+        )
+
+        assert deleted_count == 2
+
+        user_one_history = list_history(
+            db=db,
+            user_id=user_one.id,
+        )
+
+        user_two_history = list_history(
+            db=db,
+            user_id=user_two.id,
+        )
+
+        assert user_one_history == []
+        assert len(user_two_history) == 1
+        assert user_two_history[0].track_id == 3
