@@ -20,6 +20,8 @@ router = APIRouter(
     "",
     response_model=AlbumResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create an album",
+    description="Create a new album for an artist.",
 )
 def add_album(
     payload: AlbumCreate,
@@ -39,6 +41,8 @@ def add_album(
 @router.get(
     "",
     response_model=list[AlbumResponse],
+    summary="List albums",
+    description="Return all albums ordered by title and ID.",
 )
 def get_albums(
     db: Session = Depends(get_db),
@@ -54,6 +58,13 @@ def get_albums(
 @router.get(
     "/{album_id}",
     response_model=AlbumResponse,
+    summary="Get an album",
+    description="Return a single album by its ID.",
+    responses={
+        404: {
+            "description": "Album not found",
+        },
+    },
 )
 def get_album_by_id(
     album_id: int,
@@ -75,6 +86,13 @@ def get_album_by_id(
 
 @router.get(
     "/{album_id}/tracks",
+    summary="List album tracks",
+    description="Return all tracks belonging to an album in track ID order.",
+    responses={
+        404: {
+            "description": "Album not found",
+        },
+    },
 )
 def get_album_tracks(
     album_id: int,
