@@ -114,3 +114,39 @@ def test_get_missing_album_returns_404(
 
         assert response.status_code == 404
         assert response.json()["detail"] == "Album not found"
+
+
+def test_list_albums(
+    test_app: FastAPI,
+) -> None:
+    with TestClient(test_app) as client:
+        first = client.post(
+            "/api/v1/albums",
+            json={
+                "title": "Zeta Album",
+                "artist_id": test_app.state.artist_id,
+            },
+        )
+
+        second = client.post(
+            "/api/v1/albums",
+            json={
+                "title": "Alpha Album",
+                "artist_id": test_app.state.artist_id,
+            },
+        )
+
+        assert first.status_code == 201
+        assert second.status_code == 201
+
+        response = client.get("/api/v1/albums")
+
+        assert response.status_code == 200
+
+        body = response.json()
+
+        assert isinstance(body, list)
+        assert len(body) == 2
+
+        assert body[0]["title"] == "Alpha Album"
+        assert body[1]["title"] == "Zeta Album"
