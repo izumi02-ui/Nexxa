@@ -58,7 +58,7 @@
 - [x] favorites
 - [x] playlists
 - [x] history
-- [ ] albums
+- [x] albums
 - [ ] recommendations
 - [ ] artists
   - [ ] unified artist profile
