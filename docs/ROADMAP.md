@@ -57,7 +57,7 @@
 
 - [x] favorites
 - [x] playlists
-- [ ] history
+- [x] history
 - [ ] albums
 - [ ] recommendations
 - [ ] artists
