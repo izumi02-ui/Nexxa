@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.recommendations.service import get_recommendations
 
+
 router = APIRouter(
     prefix="/recommendations",
     tags=["recommendations"],
@@ -21,4 +22,3 @@ def recommendations(
         track_ids=track_ids,
         limit=limit,
     )
-)
