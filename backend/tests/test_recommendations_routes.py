@@ -1,14 +1,11 @@
 from fastapi import FastAPI
 
-from app.recommendations.routes import router
+from app.api.router import api_router
 
 
 def test_recommendations_routes_are_registered():
     app = FastAPI()
-    app.include_router(
-        router,
-        prefix="/api/v1",
-    )
+    app.include_router(api_router)
 
     paths = {
         route.path: set(route.methods or set())
