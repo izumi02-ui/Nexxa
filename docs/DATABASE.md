@@ -28,6 +28,12 @@ Represents a normalized artist.
 
 Represents a normalized album.
 
+Album metadata includes the album title, owning artist, optional artwork URL, and optional release date.
+
+The album-to-artist relationship is represented by `artist_id`.
+
+Tracks may reference an album through `album_id`, allowing an album to expose its associated tracks without duplicating track records.
+
 ### Playlist
 
 Represents a NEXXA playlist.
