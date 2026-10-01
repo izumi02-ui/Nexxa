@@ -49,6 +49,7 @@ class YouTubeChannel:
     description: str
     custom_url: str | None
     thumbnail_url: str | None
+    subscriber_count: int | None
     url: str
 
 
@@ -72,7 +73,7 @@ class YouTubeClient:
         limit: int = 10,
         page_token: str | None = None,
     ) -> tuple[list[YouTubeVideo], str | None]:
-        """Search YouTube videos and return results with the next page token."""
+        """Search YouTube videos."""
         if not query.strip():
             return [], None
 
@@ -121,7 +122,7 @@ class YouTubeClient:
         limit: int = 10,
         page_token: str | None = None,
     ) -> tuple[list[YouTubeChannel], str | None]:
-        """Search YouTube channels and return results with the next page token."""
+        """Search YouTube channels."""
         if not query.strip():
             return [], None
 
@@ -157,6 +158,7 @@ class YouTubeClient:
                     description=snippet.get("description", ""),
                     custom_url=None,
                     thumbnail_url=self._get_thumbnail_url(snippet),
+                    subscriber_count=None,
                     url=f"https://www.youtube.com/channel/{channel_id}",
                 )
             )
@@ -167,13 +169,13 @@ class YouTubeClient:
         self,
         channel_id: str,
     ) -> YouTubeChannel | None:
-        """Retrieve one YouTube channel by its channel ID."""
+        """Retrieve a YouTube channel including subscriber statistics."""
         if not channel_id.strip():
             return None
 
         params: dict[str, Any] = {
             "key": self._api_key,
-            "part": "snippet",
+            "part": "snippet,statistics",
             "id": channel_id.strip(),
         }
 
@@ -186,10 +188,20 @@ class YouTubeClient:
 
         item = items[0]
         snippet = item.get("snippet", {})
+        statistics = item.get("statistics", {})
+
         resolved_channel_id = item.get("id")
 
         if not resolved_channel_id:
             return None
+
+        subscriber_count_raw = statistics.get("subscriberCount")
+
+        subscriber_count = (
+            int(subscriber_count_raw)
+            if subscriber_count_raw is not None
+            else None
+        )
 
         return YouTubeChannel(
             channel_id=resolved_channel_id,
@@ -197,6 +209,7 @@ class YouTubeClient:
             description=snippet.get("description", ""),
             custom_url=snippet.get("customUrl"),
             thumbnail_url=self._get_thumbnail_url(snippet),
+            subscriber_count=subscriber_count,
             url=f"https://www.youtube.com/channel/{resolved_channel_id}",
         )
 
