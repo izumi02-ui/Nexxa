@@ -59,7 +59,7 @@
 - [x] playlists
 - [x] history
 - [x] albums
-- [ ] recommendations
+- [x] recommendations
 - [ ] artists
   - [ ] unified artist profile
   - [ ] artist image
