@@ -80,8 +80,8 @@
     - [x] Spotify artist statistics timestamp
     - [x] Spotify metric availability handling
   - [ ] YouTube artist/channel info
-    - [ ] YouTube channel
-    - [ ] YouTube subscribers
+    - [x] YouTube channel
+    - [x] YouTube subscribers
     - [ ] YouTube total channel views
     - [ ] YouTube public video count
     - [ ] YouTube most viewed songs/videos
