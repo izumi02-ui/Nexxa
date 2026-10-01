@@ -1,13 +1,13 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON
+from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
 
 
 class SpotifyArtistStats(Base):
-    """Spotify-specific artist statistics."""
+    """Spotify-specific artist statistics and profile data."""
 
     __tablename__ = "spotify_artist_stats"
 
@@ -22,6 +22,16 @@ class SpotifyArtistStats(Base):
         nullable=False,
         unique=True,
         index=True,
+    )
+
+    spotify_artist_id: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True,
+    )
+
+    spotify_url: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
     )
 
     followers: Mapped[int | None] = mapped_column(
