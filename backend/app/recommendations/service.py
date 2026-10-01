@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.music.favorite_models import Favorite
 from app.music.history_models import HistoryEntry
 from app.music.models import Track
+from app.music.playlist_models import Playlist, PlaylistTrack
 
 
 def get_recommendations(
@@ -38,12 +39,48 @@ def get_recommendations(
         ).all()
     )
 
+    playlists = list(
+        db.scalars(
+            select(Playlist)
+            .where(Playlist.user_id == user_id)
+            .order_by(
+                Playlist.updated_at.desc(),
+                Playlist.id.desc(),
+            )
+        ).all()
+    )
+
+    playlist_ids = {playlist.id for playlist in playlists}
+
+    playlist_tracks = []
+
+    if playlist_ids:
+        playlist_tracks = list(
+            db.scalars(
+                select(PlaylistTrack)
+                .where(
+                    PlaylistTrack.playlist_id.in_(playlist_ids)
+                )
+                .order_by(
+                    PlaylistTrack.added_at.desc(),
+                    PlaylistTrack.id.desc(),
+                )
+            ).all()
+        )
+
     source_track_ids = {
         entry.track_id
         for entry in history
-    } | {
+    }
+
+    source_track_ids |= {
         favorite.track_id
         for favorite in favorites
+    }
+
+    source_track_ids |= {
+        playlist_track.track_id
+        for playlist_track in playlist_tracks
     }
 
     if not source_track_ids:
@@ -74,6 +111,11 @@ def get_recommendations(
         if track.album_id is not None
     )
 
+    playlist_track_counts = Counter(
+        playlist_track.track_id
+        for playlist_track in playlist_tracks
+    )
+
     candidates = list(
         db.scalars(
             select(Track).where(
@@ -82,7 +124,7 @@ def get_recommendations(
         ).all()
     )
 
-    def score(track: Track) -> tuple[int, int, int]:
+    def score(track: Track) -> tuple[int, int, int, int]:
         artist_score = artist_scores.get(
             track.artist_id,
             0,
@@ -93,8 +135,20 @@ def get_recommendations(
             0,
         )
 
+        playlist_score = playlist_track_counts.get(
+            track.id,
+            0,
+        )
+
+        total_score = (
+            album_score * 3
+            + artist_score * 2
+            + playlist_score * 4
+        )
+
         return (
-            album_score * 3 + artist_score * 2,
+            total_score,
+            playlist_score,
             artist_score,
             -track.id,
         )
