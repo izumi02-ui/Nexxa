@@ -46,6 +46,12 @@ class SpotifyArtistStats(Base):
         default=list,
     )
 
+    singles: Mapped[list[dict]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=list,
+    )
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
