@@ -63,9 +63,9 @@
 - [ ] artists
   - [x] unified artist profile
   - [x] artist image
-  - [ ] artist biography / description where provider supplies it
-  - [ ] artist genres / categories
-  - [ ] provider profiles and external links
+  - [x] artist biography / description where provider supplies it
+  - [x] artist genres / categories
+  - [x] provider profiles and external links
   - [ ] Spotify artist info
     - [ ] Spotify followers
     - [ ] Spotify popularity
