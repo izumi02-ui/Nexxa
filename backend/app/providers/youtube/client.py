@@ -50,6 +50,7 @@ class YouTubeChannel:
     custom_url: str | None
     thumbnail_url: str | None
     subscriber_count: int | None
+    total_views: int | None
     url: str
 
 
@@ -159,6 +160,7 @@ class YouTubeClient:
                     custom_url=None,
                     thumbnail_url=self._get_thumbnail_url(snippet),
                     subscriber_count=None,
+                    total_views=None,
                     url=f"https://www.youtube.com/channel/{channel_id}",
                 )
             )
@@ -169,7 +171,7 @@ class YouTubeClient:
         self,
         channel_id: str,
     ) -> YouTubeChannel | None:
-        """Retrieve a YouTube channel including subscriber statistics."""
+        """Retrieve a YouTube channel including statistics."""
         if not channel_id.strip():
             return None
 
@@ -196,10 +198,17 @@ class YouTubeClient:
             return None
 
         subscriber_count_raw = statistics.get("subscriberCount")
+        view_count_raw = statistics.get("viewCount")
 
         subscriber_count = (
             int(subscriber_count_raw)
             if subscriber_count_raw is not None
+            else None
+        )
+
+        total_views = (
+            int(view_count_raw)
+            if view_count_raw is not None
             else None
         )
 
@@ -210,6 +219,7 @@ class YouTubeClient:
             custom_url=snippet.get("customUrl"),
             thumbnail_url=self._get_thumbnail_url(snippet),
             subscriber_count=subscriber_count,
+            total_views=total_views,
             url=f"https://www.youtube.com/channel/{resolved_channel_id}",
         )
 
