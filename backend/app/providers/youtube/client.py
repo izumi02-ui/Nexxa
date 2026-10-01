@@ -40,6 +40,18 @@ class YouTubeVideo:
     url: str
 
 
+@dataclass(frozen=True)
+class YouTubeChannel:
+    """Raw normalized channel data returned by the YouTube API."""
+
+    channel_id: str
+    title: str
+    description: str
+    custom_url: str | None
+    thumbnail_url: str | None
+    url: str
+
+
 class YouTubeClient:
     """Async client for the official YouTube Data API v3."""
 
@@ -103,7 +115,95 @@ class YouTubeClient:
 
         return videos, data.get("nextPageToken")
 
-    async def get_video(self, external_id: str) -> YouTubeVideo | None:
+    async def search_channels(
+        self,
+        query: str,
+        limit: int = 10,
+        page_token: str | None = None,
+    ) -> tuple[list[YouTubeChannel], str | None]:
+        """Search YouTube channels and return results with the next page token."""
+        if not query.strip():
+            return [], None
+
+        limit = max(1, min(limit, 50))
+
+        params: dict[str, Any] = {
+            "key": self._api_key,
+            "part": "snippet",
+            "type": "channel",
+            "q": query.strip(),
+            "maxResults": limit,
+        }
+
+        if page_token:
+            params["pageToken"] = page_token
+
+        response = await self._request("search", params)
+        data = response.json()
+
+        channels: list[YouTubeChannel] = []
+
+        for item in data.get("items", []):
+            channel_id = item.get("id", {}).get("channelId")
+            snippet = item.get("snippet", {})
+
+            if not channel_id:
+                continue
+
+            channels.append(
+                YouTubeChannel(
+                    channel_id=channel_id,
+                    title=snippet.get("title", ""),
+                    description=snippet.get("description", ""),
+                    custom_url=None,
+                    thumbnail_url=self._get_thumbnail_url(snippet),
+                    url=f"https://www.youtube.com/channel/{channel_id}",
+                )
+            )
+
+        return channels, data.get("nextPageToken")
+
+    async def get_channel(
+        self,
+        channel_id: str,
+    ) -> YouTubeChannel | None:
+        """Retrieve one YouTube channel by its channel ID."""
+        if not channel_id.strip():
+            return None
+
+        params: dict[str, Any] = {
+            "key": self._api_key,
+            "part": "snippet",
+            "id": channel_id.strip(),
+        }
+
+        response = await self._request("channels", params)
+        data = response.json()
+        items = data.get("items", [])
+
+        if not items:
+            return None
+
+        item = items[0]
+        snippet = item.get("snippet", {})
+        resolved_channel_id = item.get("id")
+
+        if not resolved_channel_id:
+            return None
+
+        return YouTubeChannel(
+            channel_id=resolved_channel_id,
+            title=snippet.get("title", ""),
+            description=snippet.get("description", ""),
+            custom_url=snippet.get("customUrl"),
+            thumbnail_url=self._get_thumbnail_url(snippet),
+            url=f"https://www.youtube.com/channel/{resolved_channel_id}",
+        )
+
+    async def get_video(
+        self,
+        external_id: str,
+    ) -> YouTubeVideo | None:
         """Retrieve one YouTube video by its video ID."""
         if not external_id.strip():
             return None
