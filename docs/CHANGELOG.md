@@ -124,7 +124,22 @@
 - Added album API route registration tests.
 - Added album database documentation.
 - Added album API documentation.
-  
+
+#### Recommendations
+
+- Added recommendation service.
+- Added recommendation API route.
+- Added authenticated user context for recommendations.
+- Added user-specific listening-history recommendation context.
+- Added user-specific favorite recommendation context.
+- Added user-specific playlist recommendation context.
+- Added per-user recommendation generation.
+- Added cross-user recommendation isolation tests.
+- Added recommendation service tests.
+- Added recommendation API tests.
+- Added recommendation API documentation.
+- Added recommendation database relationship documentation.
+
 ---
 
 Only record actual project changes here.
