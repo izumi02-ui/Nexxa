@@ -136,6 +136,7 @@
 - [ ] radio
 - [ ] recommendations
 - [ ] trending
+- [ ] for you
 
 ## Phase 8 — Frontend
 - [ ] app shell
