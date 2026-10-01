@@ -29,6 +29,11 @@ class SpotifyArtistStats(Base):
         nullable=True,
     )
 
+    popularity: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
