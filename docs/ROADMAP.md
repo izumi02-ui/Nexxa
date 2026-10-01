@@ -66,17 +66,17 @@
   - [x] artist biography / description where provider supplies it
   - [x] artist genres / categories
   - [x] provider profiles and external links
-  - [ ] Spotify artist info
-    - [ ] Spotify followers
-    - [ ] Spotify popularity
-    - [ ] Spotify genres
-    - [ ] Spotify albums
-    - [ ] Spotify singles
-    - [ ] Spotify compilations
-    - [ ] Spotify top/popular tracks
-    - [ ] Spotify track popularity ranking
-    - [ ] Spotify artist statistics timestamp
-    - [ ] Spotify metric availability handling
+  - [x] Spotify artist info
+    - [x] Spotify followers
+    - [x] Spotify popularity
+    - [x] Spotify genres
+    - [x] Spotify albums
+    - [x] Spotify singles
+    - [x] Spotify compilations
+    - [x] Spotify top/popular tracks
+    - [x] Spotify track popularity ranking
+    - [x] Spotify artist statistics timestamp
+    - [x] Spotify metric availability handling
   - [ ] YouTube artist/channel info
     - [ ] YouTube channel
     - [ ] YouTube subscribers
