@@ -74,6 +74,8 @@
     - [x] Spotify singles
     - [x] Spotify compilations
     - [x] Spotify top/popular tracks
+    - [x] External Spotify URL / Artist ID
+    - [x] Spotify artist monthly listeners
     - [x] Spotify track popularity ranking
     - [x] Spotify artist statistics timestamp
     - [x] Spotify metric availability handling
