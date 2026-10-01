@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer
+from sqlalchemy import DateTime, ForeignKey, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -32,6 +32,12 @@ class SpotifyArtistStats(Base):
     popularity: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
+    )
+
+    genres: Mapped[list[str]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=list,
     )
 
     updated_at: Mapped[datetime] = mapped_column(
