@@ -44,6 +44,11 @@ class SpotifyArtistStats(Base):
         nullable=True,
     )
 
+    monthly_listeners: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
     genres: Mapped[list[str]] = mapped_column(
         JSON,
         nullable=False,
@@ -66,6 +71,12 @@ class SpotifyArtistStats(Base):
         JSON,
         nullable=False,
         default=list,
+    )
+
+    statistics_fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
     )
 
     updated_at: Mapped[datetime] = mapped_column(
