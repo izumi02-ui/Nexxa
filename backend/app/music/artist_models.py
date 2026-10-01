@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy import DateTime, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -25,6 +25,17 @@ class Artist(Base):
     image_url: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
+    )
+
+    biography: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    genres: Mapped[list[str]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=list,
     )
 
     created_at: Mapped[datetime] = mapped_column(
