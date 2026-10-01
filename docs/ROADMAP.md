@@ -61,8 +61,8 @@
 - [x] albums
 - [x] recommendations
 - [ ] artists
-  - [ ] unified artist profile
-  - [ ] artist image
+  - [x] unified artist profile
+  - [x] artist image
   - [ ] artist biography / description where provider supplies it
   - [ ] artist genres / categories
   - [ ] provider profiles and external links
