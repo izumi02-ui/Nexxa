@@ -18,8 +18,7 @@
 - [x] deployment
 - [x] decisions
 - [x] feature research
-
-- [ ]
+- [ ] IZ
 
 ## Phase 1 — Server Foundation
 
