@@ -36,6 +36,12 @@ def add_history_entry(
         duration_ms=payload.duration_ms,
     )
 
+    if entry is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Track not found",
+        )
+
     db.commit()
     db.refresh(entry)
 
