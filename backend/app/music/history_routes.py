@@ -10,17 +10,14 @@ from app.music.history_service import (
     delete_history_entry,
     list_history,
 )
-from app.music.history_schemas import (
-    HistoryCreate,
-    HistoryRead,
-)
+from app.music.history_schemas import HistoryCreate, HistoryResponse
 
 router = APIRouter(prefix="/history", tags=["history"])
 
 
 @router.post(
     "",
-    response_model=HistoryRead,
+    response_model=HistoryResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def create_history(
@@ -47,7 +44,7 @@ def create_history(
     return entry
 
 
-@router.get("", response_model=list[HistoryRead])
+@router.get("", response_model=list[HistoryResponse])
 def get_history(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -55,7 +52,10 @@ def get_history(
     return list_history(db=db, user_id=current_user.id)
 
 
-@router.delete("/{history_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{history_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 def remove_history_entry(
     history_id: int,
     db: Session = Depends(get_db),
@@ -66,6 +66,7 @@ def remove_history_entry(
         user_id=current_user.id,
         history_id=history_id,
     )
+
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
