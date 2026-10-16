@@ -1,8 +1,7 @@
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.music.history_models import HistoryEntry
-from app.music.models import Track
 
 
 def create_history_entry(
@@ -11,20 +10,15 @@ def create_history_entry(
     track_id: int,
     position_ms: int | None = None,
     duration_ms: int | None = None,
-) -> HistoryEntry | None:
-    """Create a history entry only if the canonical track exists."""
-
-    if db.get(Track, track_id) is None:
-        return None
-
+) -> HistoryEntry:
     entry = HistoryEntry(
         user_id=user_id,
         track_id=track_id,
         position_ms=position_ms,
         duration_ms=duration_ms,
     )
-
     db.add(entry)
+    db.flush()
     return entry
 
 
@@ -32,8 +26,6 @@ def list_history(
     db: Session,
     user_id: int,
 ) -> list[HistoryEntry]:
-    """Return a user's history, newest first."""
-
     statement = (
         select(HistoryEntry)
         .where(HistoryEntry.user_id == user_id)
@@ -42,7 +34,6 @@ def list_history(
             HistoryEntry.id.desc(),
         )
     )
-
     return list(db.scalars(statement).all())
 
 
@@ -51,26 +42,30 @@ def delete_history_entry(
     user_id: int,
     history_id: int,
 ) -> bool:
-    """Delete a history entry only when it belongs to the user."""
-
-    statement = delete(HistoryEntry).where(
-        HistoryEntry.id == history_id,
-        HistoryEntry.user_id == user_id,
+    entry = db.scalar(
+        select(HistoryEntry).where(
+            HistoryEntry.id == history_id,
+            HistoryEntry.user_id == user_id,
+        )
     )
 
-    result = db.execute(statement)
-    return result.rowcount > 0
+    if entry is None:
+        return False
+
+    db.delete(entry)
+    db.flush()
+    return True
 
 
 def clear_history(
     db: Session,
     user_id: int,
 ) -> int:
-    """Delete all history entries belonging to the user."""
+    entries = list_history(db=db, user_id=user_id)
+    count = len(entries)
 
-    statement = delete(HistoryEntry).where(
-        HistoryEntry.user_id == user_id,
-    )
+    for entry in entries:
+        db.delete(entry)
 
-    result = db.execute(statement)
-    return result.rowcount or 0
+    db.flush()
+    return count
