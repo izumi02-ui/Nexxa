@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.music.history_models import HistoryEntry
+from app.music.models import Track
 
 
 def create_history_entry(
@@ -10,7 +11,11 @@ def create_history_entry(
     track_id: int,
     position_ms: int | None = None,
     duration_ms: int | None = None,
-) -> HistoryEntry:
+) -> HistoryEntry | None:
+    track = db.get(Track, track_id)
+    if track is None:
+        return None
+
     entry = HistoryEntry(
         user_id=user_id,
         track_id=track_id,
@@ -48,7 +53,6 @@ def delete_history_entry(
             HistoryEntry.user_id == user_id,
         )
     )
-
     if entry is None:
         return False
 
