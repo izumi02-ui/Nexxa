@@ -7,7 +7,7 @@ from app.database.base import Base
 
 
 class HistoryEntry(Base):
-    """A meaningful playback event for a user's listening history."""
+    """A playback event belonging to one user and one canonical track."""
 
     __tablename__ = "history_entries"
 
@@ -18,13 +18,13 @@ class HistoryEntry(Base):
     )
 
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
     track_id: Mapped[int] = mapped_column(
-        ForeignKey("tracks.id"),
+        ForeignKey("tracks.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
