@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -74,17 +75,21 @@ def remove_history_entry(
         )
 
     db.commit()
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.delete("", status_code=status.HTTP_200_OK)
+@router.delete(
+    "",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
 def remove_all_history(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    deleted_count = clear_history(
+    clear_history(
         db=db,
         user_id=current_user.id,
     )
     db.commit()
-    return {"deleted_count": deleted_count}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
