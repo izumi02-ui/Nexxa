@@ -1,3 +1,4 @@
+
 from logging.config import fileConfig
 
 from alembic import context
@@ -18,6 +19,7 @@ from app.music.playback_models import PlaybackState
 from app.music.playlist_models import Playlist, PlaylistTrack
 from app.music.queue_models import Queue
 from app.music.spotify_artist_stats_models import SpotifyArtistStats
+from app.music.youtube_artist_stats_models import YouTubeArtistStats
 
 
 config = context.config
