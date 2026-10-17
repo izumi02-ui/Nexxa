@@ -1,4 +1,3 @@
-
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -6,7 +5,7 @@ from app.database.base import Base
 
 
 class YouTubeArtistStats(Base):
-    """Persisted YouTube total-view statistic for a canonical artist."""
+    """Persisted YouTube statistics for a canonical artist."""
 
     __tablename__ = "youtube_artist_stats"
 
@@ -24,6 +23,11 @@ class YouTubeArtistStats(Base):
     )
 
     total_views: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    public_video_count: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
     )
