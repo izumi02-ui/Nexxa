@@ -18,7 +18,6 @@
 - [x] deployment
 - [x] decisions
 - [x] feature research
-- [ ] IZ
 
 ## Phase 1 — Server Foundation
 
@@ -83,7 +82,7 @@
   - [ ] YouTube artist/channel info
     - [x] YouTube channel
     - [x] YouTube subscribers
-    - [ ] YouTube total channel views
+    - [x] YouTube total channel views
     - [ ] YouTube public video count
     - [ ] YouTube most viewed songs/videos
     - [ ] YouTube most liked songs/videos
