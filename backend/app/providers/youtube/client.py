@@ -1,4 +1,3 @@
-
 from dataclasses import dataclass
 from typing import Any
 
@@ -53,6 +52,7 @@ class YouTubeChannel:
     subscriber_count: int | None
     total_views: int | None
     url: str
+    public_video_count: int | None = None
 
 
 class YouTubeClient:
@@ -200,6 +200,7 @@ class YouTubeClient:
 
         subscriber_count_raw = statistics.get("subscriberCount")
         view_count_raw = statistics.get("viewCount")
+        video_count_raw = statistics.get("videoCount")
 
         subscriber_count = (
             int(subscriber_count_raw)
@@ -213,6 +214,12 @@ class YouTubeClient:
             else None
         )
 
+        public_video_count = (
+            int(video_count_raw)
+            if video_count_raw is not None
+            else None
+        )
+
         return YouTubeChannel(
             channel_id=resolved_channel_id,
             title=snippet.get("title", ""),
@@ -222,6 +229,7 @@ class YouTubeClient:
             subscriber_count=subscriber_count,
             total_views=total_views,
             url=f"https://www.youtube.com/channel/{resolved_channel_id}",
+            public_video_count=public_video_count,
         )
 
     async def get_video(
