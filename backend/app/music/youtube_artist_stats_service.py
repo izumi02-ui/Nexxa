@@ -1,4 +1,3 @@
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -65,6 +64,50 @@ def get_youtube_total_views(
     artist_id: int,
 ) -> YouTubeArtistStats | None:
     """Return the saved YouTube total views, if available."""
+
+    return db.scalar(
+        select(YouTubeArtistStats).where(
+            YouTubeArtistStats.artist_id == artist_id,
+        )
+    )
+
+
+def save_youtube_public_video_count(
+    db: Session,
+    artist_id: int,
+    public_video_count: int | None,
+) -> YouTubeArtistStats:
+    """Insert or update the saved public video count."""
+
+    if public_video_count is not None and public_video_count < 0:
+        raise ValueError(
+            "YouTube public video count cannot be negative."
+        )
+
+    stats = db.scalar(
+        select(YouTubeArtistStats).where(
+            YouTubeArtistStats.artist_id == artist_id,
+        )
+    )
+
+    if stats is None:
+        stats = YouTubeArtistStats(
+            artist_id=artist_id,
+            public_video_count=public_video_count,
+        )
+        db.add(stats)
+    else:
+        stats.public_video_count = public_video_count
+
+    db.flush()
+    return stats
+
+
+def get_youtube_public_video_count(
+    db: Session,
+    artist_id: int,
+) -> YouTubeArtistStats | None:
+    """Return the saved YouTube public video count, if available."""
 
     return db.scalar(
         select(YouTubeArtistStats).where(
