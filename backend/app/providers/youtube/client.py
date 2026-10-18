@@ -1,338 +1,87 @@
-from dataclasses import dataclass
-from typing import Any
-
-import httpx
-
-
-YOUTUBE_API_BASE_URL = "https://www.googleapis.com/youtube/v3"
-
-
-class YouTubeAPIError(Exception):
-    """Base exception for YouTube Data API errors."""
-
-
-class YouTubeAuthenticationError(YouTubeAPIError):
-    """Raised when YouTube API authentication fails."""
-
-
-class YouTubeRateLimitError(YouTubeAPIError):
-    """Raised when the YouTube API rate limit or quota is exceeded."""
-
-
-class YouTubeNotFoundError(YouTubeAPIError):
-    """Raised when a requested YouTube resource is not found."""
-
-
-class YouTubeServerError(YouTubeAPIError):
-    """Raised when the YouTube API returns a server-side error."""
-
-
-@dataclass(frozen=True)
-class YouTubeVideo:
-    """Raw normalized video data returned by the YouTube API."""
-
-    video_id: str
-    title: str
-    channel_name: str
-    description: str
-    thumbnail_url: str | None
-    duration: str | None
-    url: str
-
-
-@dataclass(frozen=True)
-class YouTubeChannel:
-    """Raw normalized channel data returned by the YouTube API."""
-
-    channel_id: str
-    title: str
-    description: str
-    custom_url: str | None
-    thumbnail_url: str | None
-    subscriber_count: int | None
-    total_views: int | None
-    url: str
-    public_video_count: int | None = None
-
-
-class YouTubeClient:
-    """Async client for the official YouTube Data API v3."""
-
-    def __init__(
+    async def get_channel_videos_by_views(
         self,
-        api_key: str,
-        timeout: float = 15.0,
-    ) -> None:
-        if not api_key:
-            raise ValueError("YouTube API key is required.")
-
-        self._api_key = api_key
-        self._timeout = timeout
-
-    async def search_videos(
-        self,
-        query: str,
+        channel_id: str,
         limit: int = 10,
         page_token: str | None = None,
-    ) -> tuple[list[YouTubeVideo], str | None]:
-        """Search YouTube videos."""
-        if not query.strip():
+    ) -> tuple[list[dict[str, Any]], str | None]:
+        """Return public channel videos ordered by view count."""
+
+        if not channel_id.strip():
             return [], None
 
         limit = max(1, min(limit, 50))
 
-        params: dict[str, Any] = {
+        search_params: dict[str, Any] = {
             "key": self._api_key,
             "part": "snippet",
             "type": "video",
-            "q": query.strip(),
+            "channelId": channel_id.strip(),
+            "order": "viewCount",
             "maxResults": limit,
         }
 
         if page_token:
-            params["pageToken"] = page_token
+            search_params["pageToken"] = page_token
 
-        response = await self._request("search", params)
-        data = response.json()
+        search_response = await self._request(
+            "search",
+            search_params,
+        )
+        search_data = search_response.json()
 
-        videos: list[YouTubeVideo] = []
+        items = search_data.get("items", [])
+        video_ids = [
+            item.get("id", {}).get("videoId")
+            for item in items
+            if item.get("id", {}).get("videoId")
+        ]
 
-        for item in data.get("items", []):
-            video_id = item.get("id", {}).get("videoId")
+        if not video_ids:
+            return [], search_data.get("nextPageToken")
+
+        videos_response = await self._request(
+            "videos",
+            {
+                "key": self._api_key,
+                "part": "snippet,contentDetails,statistics",
+                "id": ",".join(video_ids),
+            },
+        )
+        videos_data = videos_response.json()
+
+        videos: list[dict[str, Any]] = []
+
+        for item in videos_data.get("items", []):
+            video_id = item.get("id")
             snippet = item.get("snippet", {})
+            details = item.get("contentDetails", {})
+            statistics = item.get("statistics", {})
 
             if not video_id:
                 continue
 
+            raw_views = statistics.get("viewCount")
+            view_count = int(raw_views) if raw_views is not None else None
+
             videos.append(
-                YouTubeVideo(
-                    video_id=video_id,
-                    title=snippet.get("title", ""),
-                    channel_name=snippet.get("channelTitle", ""),
-                    description=snippet.get("description", ""),
-                    thumbnail_url=self._get_thumbnail_url(snippet),
-                    duration=None,
-                    url=f"https://www.youtube.com/watch?v={video_id}",
-                )
+                {
+                    "video_id": video_id,
+                    "title": snippet.get("title", ""),
+                    "channel_name": snippet.get("channelTitle", ""),
+                    "description": snippet.get("description", ""),
+                    "thumbnail_url": self._get_thumbnail_url(snippet),
+                    "duration": details.get("duration"),
+                    "url": f"https://www.youtube.com/watch?v={video_id}",
+                    "view_count": view_count,
+                }
             )
 
-        return videos, data.get("nextPageToken")
-
-    async def search_channels(
-        self,
-        query: str,
-        limit: int = 10,
-        page_token: str | None = None,
-    ) -> tuple[list[YouTubeChannel], str | None]:
-        """Search YouTube channels."""
-        if not query.strip():
-            return [], None
-
-        limit = max(1, min(limit, 50))
-
-        params: dict[str, Any] = {
-            "key": self._api_key,
-            "part": "snippet",
-            "type": "channel",
-            "q": query.strip(),
-            "maxResults": limit,
-        }
-
-        if page_token:
-            params["pageToken"] = page_token
-
-        response = await self._request("search", params)
-        data = response.json()
-
-        channels: list[YouTubeChannel] = []
-
-        for item in data.get("items", []):
-            channel_id = item.get("id", {}).get("channelId")
-            snippet = item.get("snippet", {})
-
-            if not channel_id:
-                continue
-
-            channels.append(
-                YouTubeChannel(
-                    channel_id=channel_id,
-                    title=snippet.get("title", ""),
-                    description=snippet.get("description", ""),
-                    custom_url=None,
-                    thumbnail_url=self._get_thumbnail_url(snippet),
-                    subscriber_count=None,
-                    total_views=None,
-                    url=f"https://www.youtube.com/channel/{channel_id}",
-                )
-            )
-
-        return channels, data.get("nextPageToken")
-
-    async def get_channel(
-        self,
-        channel_id: str,
-    ) -> YouTubeChannel | None:
-        """Retrieve a YouTube channel including statistics."""
-        if not channel_id.strip():
-            return None
-
-        params: dict[str, Any] = {
-            "key": self._api_key,
-            "part": "snippet,statistics",
-            "id": channel_id.strip(),
-        }
-
-        response = await self._request("channels", params)
-        data = response.json()
-        items = data.get("items", [])
-
-        if not items:
-            return None
-
-        item = items[0]
-        snippet = item.get("snippet", {})
-        statistics = item.get("statistics", {})
-
-        resolved_channel_id = item.get("id")
-
-        if not resolved_channel_id:
-            return None
-
-        subscriber_count_raw = statistics.get("subscriberCount")
-        view_count_raw = statistics.get("viewCount")
-        video_count_raw = statistics.get("videoCount")
-
-        subscriber_count = (
-            int(subscriber_count_raw)
-            if subscriber_count_raw is not None
-            else None
+        videos.sort(
+            key=lambda video: (
+                video["view_count"] is not None,
+                video["view_count"] if video["view_count"] is not None else -1,
+            ),
+            reverse=True,
         )
 
-        total_views = (
-            int(view_count_raw)
-            if view_count_raw is not None
-            else None
-        )
-
-        public_video_count = (
-            int(video_count_raw)
-            if video_count_raw is not None
-            else None
-        )
-
-        return YouTubeChannel(
-            channel_id=resolved_channel_id,
-            title=snippet.get("title", ""),
-            description=snippet.get("description", ""),
-            custom_url=snippet.get("customUrl"),
-            thumbnail_url=self._get_thumbnail_url(snippet),
-            subscriber_count=subscriber_count,
-            total_views=total_views,
-            url=f"https://www.youtube.com/channel/{resolved_channel_id}",
-            public_video_count=public_video_count,
-        )
-
-    async def get_video(
-        self,
-        external_id: str,
-    ) -> YouTubeVideo | None:
-        """Retrieve one YouTube video by its video ID."""
-        if not external_id.strip():
-            return None
-
-        params: dict[str, Any] = {
-            "key": self._api_key,
-            "part": "snippet,contentDetails",
-            "id": external_id.strip(),
-        }
-
-        response = await self._request("videos", params)
-        data = response.json()
-        items = data.get("items", [])
-
-        if not items:
-            return None
-
-        item = items[0]
-        snippet = item.get("snippet", {})
-        content_details = item.get("contentDetails", {})
-
-        video_id = item.get("id")
-
-        if not video_id:
-            return None
-
-        return YouTubeVideo(
-            video_id=video_id,
-            title=snippet.get("title", ""),
-            channel_name=snippet.get("channelTitle", ""),
-            description=snippet.get("description", ""),
-            thumbnail_url=self._get_thumbnail_url(snippet),
-            duration=content_details.get("duration"),
-            url=f"https://www.youtube.com/watch?v={video_id}",
-        )
-
-    async def _request(
-        self,
-        endpoint: str,
-        params: dict[str, Any],
-    ) -> httpx.Response:
-        url = f"{YOUTUBE_API_BASE_URL}/{endpoint}"
-
-        try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
-                response = await client.get(url, params=params)
-        except httpx.HTTPError as exc:
-            raise YouTubeAPIError(
-                "YouTube API request failed."
-            ) from exc
-
-        self._raise_for_status(response)
-
-        return response
-
-    @staticmethod
-    def _raise_for_status(response: httpx.Response) -> None:
-        if response.status_code in {401, 403}:
-            raise YouTubeAuthenticationError(
-                "YouTube API authentication or quota access failed."
-            )
-
-        if response.status_code == 404:
-            raise YouTubeNotFoundError(
-                "YouTube resource was not found."
-            )
-
-        if response.status_code == 429:
-            raise YouTubeRateLimitError(
-                "YouTube API rate limit was exceeded."
-            )
-
-        if response.status_code >= 500:
-            raise YouTubeServerError(
-                "YouTube API server error."
-            )
-
-        if response.status_code >= 400:
-            raise YouTubeAPIError(
-                "YouTube API request was rejected."
-            )
-
-        response.raise_for_status()
-
-    @staticmethod
-    def _get_thumbnail_url(
-        snippet: dict[str, Any],
-    ) -> str | None:
-        thumbnails = snippet.get("thumbnails", {})
-
-        for name in ("high", "medium", "default"):
-            thumbnail = thumbnails.get(name)
-
-            if isinstance(thumbnail, dict):
-                url = thumbnail.get("url")
-
-                if url:
-                    return url
-
-        return None
+        return videos, search_data.get("nextPageToken")
