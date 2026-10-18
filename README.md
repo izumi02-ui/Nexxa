@@ -19,7 +19,7 @@ NEXXA is planned to provide:
 - Spotify integration
 - YouTube integration
 - YouTube Music integration
-- JioSaavn integration
+- Apple Music integration
 - Universal library import
 - Playlists
 - Favorites
