@@ -84,7 +84,7 @@
     - [x] YouTube subscribers
     - [x] YouTube total channel views
     - [x] YouTube public video count
-    - [ ] YouTube most viewed songs/videos
+    - [x] YouTube most viewed songs/videos
     - [ ] YouTube most liked songs/videos
     - [ ] YouTube latest songs/videos
     - [ ] YouTube per-video view count
