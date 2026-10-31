@@ -336,6 +336,80 @@ class SpotifyClient:
 
         return data
 
+    async def get_artist_top_tracks(
+        self,
+        external_id: str,
+        market: str = "US",
+    ) -> dict:
+        """Retrieve an artist's top tracks for a market."""
+
+        external_id = external_id.strip()
+        market = market.strip().upper()
+
+        if not external_id:
+            raise SpotifyAPIError(
+                "Spotify artist ID cannot be empty."
+            )
+
+        if (
+            len(market) != 2
+            or not market.isalpha()
+        ):
+            raise SpotifyAPIError(
+                "Spotify market must be a two-letter country code."
+            )
+
+        access_token = await self.get_access_token()
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    (
+                        f"{SPOTIFY_API_BASE_URL}/artists/"
+                        f"{external_id}/top-tracks"
+                    ),
+                    params={
+                        "market": market,
+                    },
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                    },
+                    timeout=15.0,
+                )
+        except httpx.HTTPError as exc:
+            logger.exception(
+                "Spotify artist top tracks request failed."
+            )
+            raise SpotifyAPIError(
+                "Unable to connect to Spotify artist top tracks service."
+            ) from exc
+
+        self._raise_for_status(
+            response,
+            operation="Spotify artist top tracks request",
+        )
+
+        try:
+            data = response.json()
+        except ValueError as exc:
+            raise SpotifyAPIError(
+                "Spotify returned invalid artist top tracks response data."
+            ) from exc
+
+        if not isinstance(data, dict):
+            raise SpotifyAPIError(
+                "Spotify returned an invalid artist top tracks response."
+            )
+
+        tracks = data.get("tracks")
+
+        if not isinstance(tracks, list):
+            raise SpotifyAPIError(
+                "Spotify artist top tracks response is missing tracks."
+            )
+
+        return data
+
     async def get_track(
         self,
         external_id: str,
