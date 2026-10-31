@@ -112,3 +112,14 @@ class YouTubeVideoLikeCountResponse(BaseModel):
     video_id: str
     title: str
     like_count: int | None = Field(default=None, ge=0)
+
+class YouTubeVideoCommentCountResponse(BaseModel):
+    """Public comment count for one video belonging to an artist channel."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    artist_id: int = Field(gt=0)
+    channel_id: str
+    video_id: str
+    title: str
+    comment_count: int | None = Field(default=None, ge=0)
