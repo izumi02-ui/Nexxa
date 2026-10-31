@@ -65,3 +65,27 @@ class YouTubeMostLikedVideosResponse(BaseModel):
     channel_id: str
     videos: list[YouTubeMostLikedVideo]
     next_page_token: str | None = None
+
+
+class YouTubeLatestVideo(BaseModel):
+    """A YouTube video with its publication timestamp."""
+
+    video_id: str
+    title: str
+    channel_name: str
+    description: str
+    thumbnail_url: str | None = None
+    duration: str | None = None
+    published_at: str | None = None
+    url: str
+
+
+class YouTubeLatestVideosResponse(BaseModel):
+    """Latest videos for a mapped YouTube artist channel."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    artist_id: int = Field(gt=0)
+    channel_id: str
+    videos: list[YouTubeLatestVideo]
+    next_page_token: str | None = None
