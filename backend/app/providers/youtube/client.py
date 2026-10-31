@@ -492,6 +492,52 @@ class YouTubeClient:
 
         return videos, search_data.get("nextPageToken")
 
+    async def get_channel_video_view_count(
+        self,
+        channel_id: str,
+        video_id: str,
+    ) -> dict[str, Any] | None:
+        """Retrieve the public view count for one video on a channel."""
+        if not channel_id.strip() or not video_id.strip():
+            return None
+
+        response = await self._request(
+            "videos",
+            {
+                "key": self._api_key,
+                "part": "snippet,statistics",
+                "id": video_id.strip(),
+            },
+        )
+
+        data = response.json()
+        items = data.get("items", [])
+
+        if not items:
+            return None
+
+        item = items[0]
+        snippet = item.get("snippet", {})
+        statistics = item.get("statistics", {})
+
+        resolved_channel_id = snippet.get("channelId")
+
+        if resolved_channel_id != channel_id.strip():
+            return None
+
+        raw_views = statistics.get("viewCount")
+
+        return {
+            "video_id": item.get("id"),
+            "channel_id": resolved_channel_id,
+            "title": snippet.get("title", ""),
+            "view_count": (
+                int(raw_views)
+                if raw_views is not None
+                else None
+            ),
+        }
+
     async def get_video(
         self,
         external_id: str,
