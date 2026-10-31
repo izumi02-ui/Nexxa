@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
-
+from datetime import datetime
 
 class YouTubeTotalViewsResponse(BaseModel):
     """Response containing an artist's saved YouTube channel views."""
