@@ -91,7 +91,7 @@
     - [x] YouTube per-video like count
     - [x] YouTube per-video comment count
     - [x] External YouTube URL / Artist ID
-    - [ ] YouTube channel topics/categories
+    - [x] YouTube channel topics/categories
     - [ ] YouTube statistics timestamp
   - [ ] cross-provider artist comparison
     - [ ] Spotify followers
