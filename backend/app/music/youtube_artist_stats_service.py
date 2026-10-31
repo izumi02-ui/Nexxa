@@ -1,6 +1,7 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
 
 from app.music.artist_models import Artist
 from app.music.artist_provider_models import ArtistProviderProfile
@@ -36,7 +37,7 @@ def save_youtube_total_views(
     artist_id: int,
     total_views: int | None,
 ) -> YouTubeArtistStats:
-    """Insert or update the saved total channel view count."""
+    """Insert or update saved total channel views and retrieval time."""
 
     if total_views is not None and total_views < 0:
         raise ValueError("YouTube total views cannot be negative.")
@@ -47,25 +48,29 @@ def save_youtube_total_views(
         )
     )
 
+    fetched_at = datetime.now(timezone.utc)
+
     if stats is None:
-                stats = YouTubeArtistStats(
+        stats = YouTubeArtistStats(
             artist_id=artist_id,
             total_views=total_views,
-            statistics_fetched_at=datetime.now(timezone.utc),
+            statistics_fetched_at=fetched_at,
         )
         db.add(stats)
     else:
         stats.total_views = total_views
-        stats.statistics_fetched_at = datetime.now(timezone.utc)
+        stats.statistics_fetched_at = fetched_at
 
     db.flush()
     return stats
+
 
 def get_youtube_channel_profile(
     db: Session,
     artist_id: int,
 ) -> dict[str, str] | None:
     """Return the mapped YouTube channel ID and external URL."""
+
     artist = db.get(Artist, artist_id)
 
     if artist is None:
@@ -90,6 +95,7 @@ def get_youtube_channel_profile(
         "external_url": external_url,
     }
 
+
 def get_youtube_total_views(
     db: Session,
     artist_id: int,
@@ -108,7 +114,7 @@ def save_youtube_public_video_count(
     artist_id: int,
     public_video_count: int | None,
 ) -> YouTubeArtistStats:
-    """Insert or update the saved public video count."""
+    """Insert or update public video count and retrieval time."""
 
     if public_video_count is not None and public_video_count < 0:
         raise ValueError(
@@ -121,16 +127,19 @@ def save_youtube_public_video_count(
         )
     )
 
+    fetched_at = datetime.now(timezone.utc)
+
     if stats is None:
-                stats = YouTubeArtistStats(
+        stats = YouTubeArtistStats(
             artist_id=artist_id,
             public_video_count=public_video_count,
-            statistics_fetched_at=datetime.now(timezone.utc),
+            statistics_fetched_at=fetched_at,
         )
         db.add(stats)
     else:
         stats.public_video_count = public_video_count
-        stats.statistics_fetched_at = datetime.now(timezone.utc)
+        stats.statistics_fetched_at = fetched_at
+
     db.flush()
     return stats
 
@@ -146,6 +155,7 @@ def get_youtube_public_video_count(
             YouTubeArtistStats.artist_id == artist_id,
         )
     )
+
 
 def get_youtube_statistics_timestamp(
     db: Session,
