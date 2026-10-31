@@ -90,7 +90,7 @@
     - [x] YouTube per-video view count
     - [x] YouTube per-video like count
     - [x] YouTube per-video comment count
-    - [ ] External YouTube URL / Artist ID
+    - [x] External YouTube URL / Artist ID
     - [ ] YouTube channel topics/categories
     - [ ] YouTube statistics timestamp
   - [ ] cross-provider artist comparison
