@@ -668,3 +668,45 @@ async def get_youtube_artist_topics(
         channel_id=channel_id,
         topic_categories=categories,
     )
+
+@router.get(
+    "/{artist_id}/youtube/statistics-timestamp",
+    response_model=YouTubeStatisticsTimestampResponse,
+    summary="Get the last YouTube statistics retrieval timestamp",
+    responses={
+        404: {"description": "Artist or YouTube channel mapping not found"},
+    },
+)
+async def get_youtube_artist_statistics_timestamp(
+    artist_id: int,
+    db: Session = Depends(get_db),
+) -> YouTubeStatisticsTimestampResponse:
+    artist = db.get(Artist, artist_id)
+
+    if artist is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Artist not found",
+        )
+
+    channel_id = get_youtube_channel_id(
+        db=db,
+        artist_id=artist_id,
+    )
+
+    if channel_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="YouTube channel mapping not found",
+        )
+
+    fetched_at = get_youtube_statistics_timestamp(
+        db=db,
+        artist_id=artist_id,
+    )
+
+    return YouTubeStatisticsTimestampResponse(
+        artist_id=artist_id,
+        channel_id=channel_id,
+        statistics_fetched_at=fetched_at,
+    )
