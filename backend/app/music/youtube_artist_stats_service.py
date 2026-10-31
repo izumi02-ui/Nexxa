@@ -130,7 +130,7 @@ def save_youtube_public_video_count(
         db.add(stats)
     else:
         stats.public_video_count = public_video_count
-
+        stats.statistics_fetched_at = datetime.now(timezone.utc)
     db.flush()
     return stats
 
