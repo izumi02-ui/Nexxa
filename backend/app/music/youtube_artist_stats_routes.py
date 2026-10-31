@@ -14,11 +14,13 @@ from app.music.youtube_artist_stats_schemas import (
     YouTubeVideoCommentCountResponse,
     YouTubeVideoLikeCountResponse,
     YouTubeChannelTopicsResponse,
+    YouTubeStatisticsTimestampResponse,
     YouTubeVideoViewCountResponse,
 )
 from app.music.youtube_artist_stats_service import (
     get_youtube_channel_id,
     get_youtube_channel_profile,
+    get_youtube_statistics_timestamp,
     save_youtube_public_video_count,
     save_youtube_total_views,
 )
