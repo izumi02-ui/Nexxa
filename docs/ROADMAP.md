@@ -86,7 +86,7 @@
     - [x] YouTube public video count
     - [x] YouTube most viewed songs/videos
     - [x] YouTube most liked songs/videos
-    - [ ] YouTube latest songs/videos
+    - [x] YouTube latest songs/videos
     - [ ] YouTube per-video view count
     - [ ] YouTube per-video like count
     - [ ] YouTube per-video comment count
