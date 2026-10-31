@@ -17,6 +17,7 @@ from app.music.youtube_artist_stats_schemas import (
 )
 from app.music.youtube_artist_stats_service import (
     get_youtube_channel_id,
+    get_youtube_channel_profile,
     save_youtube_public_video_count,
     save_youtube_total_views,
 )
