@@ -141,3 +141,12 @@ class YouTubeChannelTopicsResponse(BaseModel):
     artist_id: int = Field(gt=0)
     channel_id: str
     topic_categories: list[str]
+
+class YouTubeStatisticsTimestampResponse(BaseModel):
+    """Timestamp of the last YouTube statistics retrieval by Nexxa."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    artist_id: int = Field(gt=0)
+    channel_id: str
+    statistics_fetched_at: datetime | None = None
