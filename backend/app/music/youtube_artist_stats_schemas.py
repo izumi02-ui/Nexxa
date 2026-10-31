@@ -132,3 +132,12 @@ class YouTubeArtistProfileResponse(BaseModel):
     artist_id: int = Field(gt=0)
     channel_id: str
     external_url: str
+
+class YouTubeChannelTopicsResponse(BaseModel):
+    """Topic categories supplied by YouTube for an artist channel."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    artist_id: int = Field(gt=0)
+    channel_id: str
+    topic_categories: list[str]
