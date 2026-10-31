@@ -601,3 +601,68 @@ async def get_youtube_artist_profile(
         channel_id=profile["channel_id"],
         external_url=profile["external_url"],
     )
+
+@router.get(
+    "/{artist_id}/youtube/topics",
+    response_model=YouTubeChannelTopicsResponse,
+    summary="Get an artist's YouTube channel topic categories",
+    responses={
+        404: {"description": "Artist or YouTube channel not found"},
+        502: {"description": "YouTube API request failed"},
+        503: {"description": "YouTube API key is not configured"},
+    },
+)
+async def get_youtube_artist_topics(
+    artist_id: int,
+    db: Session = Depends(get_db),
+) -> YouTubeChannelTopicsResponse:
+    artist = db.get(Artist, artist_id)
+
+    if artist is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Artist not found",
+        )
+
+    channel_id = get_youtube_channel_id(
+        db=db,
+        artist_id=artist_id,
+    )
+
+    if channel_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="YouTube channel mapping not found",
+        )
+
+    api_key = get_settings().youtube_api_key
+
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="YouTube API key is not configured",
+        )
+
+    client = YouTubeClient(api_key=api_key)
+
+    try:
+        categories = await client.get_channel_topics(
+            channel_id=channel_id,
+        )
+    except YouTubeAPIError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Unable to retrieve YouTube channel topics",
+        ) from exc
+
+    if categories is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="YouTube channel was not found",
+        )
+
+    return YouTubeChannelTopicsResponse(
+        artist_id=artist_id,
+        channel_id=channel_id,
+        topic_categories=categories,
+    )
