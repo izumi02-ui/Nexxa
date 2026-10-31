@@ -79,7 +79,7 @@
     - [x] Spotify track popularity ranking
     - [x] Spotify artist statistics timestamp
     - [x] Spotify metric availability handling
-  - [ ] YouTube artist/channel info
+  - [x] YouTube artist/channel info
     - [x] YouTube channel
     - [x] YouTube subscribers
     - [x] YouTube total channel views
@@ -92,7 +92,7 @@
     - [x] YouTube per-video comment count
     - [x] External YouTube URL / Artist ID
     - [x] YouTube channel topics/categories
-    - [ ] YouTube statistics timestamp
+    - [x] YouTube statistics timestamp
   - [ ] cross-provider artist comparison
     - [ ] Spotify followers
     - [ ] Spotify popularity
