@@ -1,15 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.music.youtube_artist_stats_schemas import (
-    YouTubeMostViewedVideosResponse,
-    YouTubePublicVideoCountResponse,
-    YouTubeTotalViewsResponse,
-)
 
 from app.config import get_settings
 from app.database.session import get_db
 from app.music.artist_models import Artist
 from app.music.youtube_artist_stats_schemas import (
+    YouTubeMostLikedVideosResponse,
+    YouTubeMostViewedVideosResponse,
     YouTubePublicVideoCountResponse,
     YouTubeTotalViewsResponse,
 )
@@ -180,6 +177,7 @@ async def refresh_youtube_public_video_count(
         public_video_count=stats.public_video_count,
     )
 
+
 @router.get(
     "/{artist_id}/youtube/most-viewed-videos",
     response_model=YouTubeMostViewedVideosResponse,
@@ -244,6 +242,82 @@ async def get_youtube_most_viewed_videos(
         ) from exc
 
     return YouTubeMostViewedVideosResponse(
+        artist_id=artist_id,
+        channel_id=channel_id,
+        videos=videos,
+        next_page_token=next_page_token,
+    )
+
+
+@router.get(
+    "/{artist_id}/youtube/most-liked-videos",
+    response_model=YouTubeMostLikedVideosResponse,
+    summary="Get an artist's videos sorted by public like count",
+    description=(
+        "Returns candidate videos discovered through YouTube search, "
+        "sorted by their available public like counts. YouTube does not "
+        "provide a search order for global like count rankings."
+    ),
+    responses={
+        404: {"description": "Artist or YouTube channel mapping not found"},
+        502: {"description": "YouTube API request failed"},
+        503: {"description": "YouTube API key is not configured"},
+    },
+)
+async def get_youtube_most_liked_videos(
+    artist_id: int,
+    limit: int = 10,
+    page_token: str | None = None,
+    db: Session = Depends(get_db),
+) -> YouTubeMostLikedVideosResponse:
+    if limit < 1 or limit > 50:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Limit must be between 1 and 50",
+        )
+
+    artist = db.get(Artist, artist_id)
+
+    if artist is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Artist not found",
+        )
+
+    channel_id = get_youtube_channel_id(
+        db=db,
+        artist_id=artist_id,
+    )
+
+    if channel_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="YouTube channel mapping not found",
+        )
+
+    api_key = get_settings().youtube_api_key
+
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="YouTube API key is not configured",
+        )
+
+    client = YouTubeClient(api_key=api_key)
+
+    try:
+        videos, next_page_token = await client.get_channel_videos_by_likes(
+            channel_id=channel_id,
+            limit=limit,
+            page_token=page_token,
+        )
+    except YouTubeAPIError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Unable to retrieve YouTube videos",
+        ) from exc
+
+    return YouTubeMostLikedVideosResponse(
         artist_id=artist_id,
         channel_id=channel_id,
         videos=videos,
