@@ -417,3 +417,139 @@ async def test_get_artist_albums_handles_invalid_json(
         match="invalid artist albums response data",
     ):
         await client.get_artist_albums("spotify-artist-123")
+
+
+@pytest.mark.asyncio
+async def test_get_artist_top_tracks_returns_tracks(
+    monkeypatch,
+) -> None:
+    client = make_client()
+    await install_fake_token(monkeypatch, client)
+
+    fake = FakeAsyncClient(
+        make_response(
+            200,
+            json_data={
+                "tracks": [
+                    {
+                        "id": "track-123",
+                        "name": "Popular Song",
+                        "duration_ms": 210000,
+                        "album": {
+                            "name": "Popular Album",
+                        },
+                        "external_urls": {
+                            "spotify": "https://open.spotify.com/track/track-123",
+                        },
+                    },
+                ],
+            },
+        )
+    )
+
+    monkeypatch.setattr(
+        "app.providers.spotify.client.httpx.AsyncClient",
+        lambda: fake,
+    )
+
+    result = await client.get_artist_top_tracks(
+        "spotify-artist-123"
+    )
+
+    assert len(result["tracks"]) == 1
+    assert result["tracks"][0]["id"] == "track-123"
+    assert result["tracks"][0]["name"] == "Popular Song"
+    assert fake.last_url.endswith(
+        "/artists/spotify-artist-123/top-tracks"
+    )
+    assert fake.last_params["market"] == "US"
+
+
+@pytest.mark.asyncio
+async def test_get_artist_top_tracks_uses_requested_market(
+    monkeypatch,
+) -> None:
+    client = make_client()
+    await install_fake_token(monkeypatch, client)
+
+    fake = FakeAsyncClient(
+        make_response(
+            200,
+            json_data={"tracks": []},
+        )
+    )
+
+    monkeypatch.setattr(
+        "app.providers.spotify.client.httpx.AsyncClient",
+        lambda: fake,
+    )
+
+    await client.get_artist_top_tracks(
+        "spotify-artist-123",
+        market="in",
+    )
+
+    assert fake.last_params["market"] == "IN"
+
+
+@pytest.mark.asyncio
+async def test_get_artist_top_tracks_rejects_empty_id() -> None:
+    with pytest.raises(
+        SpotifyAPIError,
+        match="artist ID cannot be empty",
+    ):
+        await make_client().get_artist_top_tracks("   ")
+
+
+@pytest.mark.asyncio
+async def test_get_artist_top_tracks_rejects_invalid_market() -> None:
+    with pytest.raises(
+        SpotifyAPIError,
+        match="two-letter country code",
+    ):
+        await make_client().get_artist_top_tracks(
+            "spotify-artist-123",
+            market="IND",
+        )
+
+
+@pytest.mark.asyncio
+async def test_get_artist_top_tracks_rejects_invalid_response(
+    monkeypatch,
+) -> None:
+    client = make_client()
+    await install_fake_token(monkeypatch, client)
+
+    monkeypatch.setattr(
+        "app.providers.spotify.client.httpx.AsyncClient",
+        lambda: FakeAsyncClient(
+            make_response(
+                200,
+                json_data={"items": []},
+            )
+        ),
+    )
+
+    with pytest.raises(
+        SpotifyAPIError,
+        match="missing tracks",
+    ):
+        await client.get_artist_top_tracks(
+            "spotify-artist-123"
+        )
+
+
+@pytest.mark.asyncio
+async def test_get_artist_top_tracks_handles_not_found(
+    monkeypatch,
+) -> None:
+    client = make_client()
+    await install_fake_token(monkeypatch, client)
+
+    monkeypatch.setattr(
+        "app.providers.spotify.client.httpx.AsyncClient",
+        lambda: FakeAsyncClient(make_response(404)),
+    )
+
+    with pytest.raises(SpotifyNotFoundError):
+        await client.get_artist_top_tracks("missing-artist")
