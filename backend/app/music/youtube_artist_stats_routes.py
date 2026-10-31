@@ -5,6 +5,7 @@ from app.config import get_settings
 from app.database.session import get_db
 from app.music.artist_models import Artist
 from app.music.youtube_artist_stats_schemas import (
+    YouTubeLatestVideosResponse,
     YouTubeMostLikedVideosResponse,
     YouTubeMostViewedVideosResponse,
     YouTubePublicVideoCountResponse,
@@ -52,10 +53,7 @@ async def refresh_youtube_total_views(
             detail="Artist not found",
         )
 
-    channel_id = get_youtube_channel_id(
-        db=db,
-        artist_id=artist_id,
-    )
+    channel_id = get_youtube_channel_id(db=db, artist_id=artist_id)
 
     if channel_id is None:
         raise HTTPException(
@@ -128,10 +126,7 @@ async def refresh_youtube_public_video_count(
             detail="Artist not found",
         )
 
-    channel_id = get_youtube_channel_id(
-        db=db,
-        artist_id=artist_id,
-    )
+    channel_id = get_youtube_channel_id(db=db, artist_id=artist_id)
 
     if channel_id is None:
         raise HTTPException(
@@ -208,10 +203,7 @@ async def get_youtube_most_viewed_videos(
             detail="Artist not found",
         )
 
-    channel_id = get_youtube_channel_id(
-        db=db,
-        artist_id=artist_id,
-    )
+    channel_id = get_youtube_channel_id(db=db, artist_id=artist_id)
 
     if channel_id is None:
         raise HTTPException(
@@ -284,10 +276,7 @@ async def get_youtube_most_liked_videos(
             detail="Artist not found",
         )
 
-    channel_id = get_youtube_channel_id(
-        db=db,
-        artist_id=artist_id,
-    )
+    channel_id = get_youtube_channel_id(db=db, artist_id=artist_id)
 
     if channel_id is None:
         raise HTTPException(
@@ -318,6 +307,74 @@ async def get_youtube_most_liked_videos(
         ) from exc
 
     return YouTubeMostLikedVideosResponse(
+        artist_id=artist_id,
+        channel_id=channel_id,
+        videos=videos,
+        next_page_token=next_page_token,
+    )
+
+
+@router.get(
+    "/{artist_id}/youtube/latest-videos",
+    response_model=YouTubeLatestVideosResponse,
+    summary="Get an artist's latest YouTube videos",
+    responses={
+        404: {"description": "Artist or YouTube channel mapping not found"},
+        502: {"description": "YouTube API request failed"},
+        503: {"description": "YouTube API key is not configured"},
+    },
+)
+async def get_youtube_latest_videos(
+    artist_id: int,
+    limit: int = 10,
+    page_token: str | None = None,
+    db: Session = Depends(get_db),
+) -> YouTubeLatestVideosResponse:
+    if limit < 1 or limit > 50:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Limit must be between 1 and 50",
+        )
+
+    artist = db.get(Artist, artist_id)
+
+    if artist is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Artist not found",
+        )
+
+    channel_id = get_youtube_channel_id(db=db, artist_id=artist_id)
+
+    if channel_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="YouTube channel mapping not found",
+        )
+
+    api_key = get_settings().youtube_api_key
+
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="YouTube API key is not configured",
+        )
+
+    client = YouTubeClient(api_key=api_key)
+
+    try:
+        videos, next_page_token = await client.get_channel_latest_videos(
+            channel_id=channel_id,
+            limit=limit,
+            page_token=page_token,
+        )
+    except YouTubeAPIError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Unable to retrieve latest YouTube videos",
+        ) from exc
+
+    return YouTubeLatestVideosResponse(
         artist_id=artist_id,
         channel_id=channel_id,
         videos=videos,
