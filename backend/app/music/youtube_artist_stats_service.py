@@ -146,3 +146,20 @@ def get_youtube_public_video_count(
             YouTubeArtistStats.artist_id == artist_id,
         )
     )
+
+def get_youtube_statistics_timestamp(
+    db: Session,
+    artist_id: int,
+) -> datetime | None:
+    """Return when YouTube statistics were last fetched by Nexxa."""
+
+    stats = db.scalar(
+        select(YouTubeArtistStats).where(
+            YouTubeArtistStats.artist_id == artist_id,
+        )
+    )
+
+    if stats is None:
+        return None
+
+    return stats.statistics_fetched_at
