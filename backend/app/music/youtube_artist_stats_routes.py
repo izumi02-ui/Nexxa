@@ -571,3 +571,32 @@ async def get_youtube_video_comment_count(
         title=video["title"],
         comment_count=video["comment_count"],
     )
+
+@router.get(
+    "/{artist_id}/youtube/profile",
+    response_model=YouTubeArtistProfileResponse,
+    summary="Get an artist's external YouTube profile",
+    responses={
+        404: {"description": "Artist or YouTube channel mapping not found"},
+    },
+)
+async def get_youtube_artist_profile(
+    artist_id: int,
+    db: Session = Depends(get_db),
+) -> YouTubeArtistProfileResponse:
+    profile = get_youtube_channel_profile(
+        db=db,
+        artist_id=artist_id,
+    )
+
+    if profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Artist or YouTube channel mapping not found",
+        )
+
+    return YouTubeArtistProfileResponse(
+        artist_id=artist_id,
+        channel_id=profile["channel_id"],
+        external_url=profile["external_url"],
+    )
