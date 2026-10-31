@@ -1,4 +1,6 @@
-from sqlalchemy import ForeignKey, Integer
+from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -29,5 +31,10 @@ class YouTubeArtistStats(Base):
 
     public_video_count: Mapped[int | None] = mapped_column(
         Integer,
+        nullable=True,
+    )
+
+    statistics_fetched_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
         nullable=True,
     )
