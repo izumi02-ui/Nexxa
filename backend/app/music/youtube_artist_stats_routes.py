@@ -5,6 +5,7 @@ from app.config import get_settings
 from app.database.session import get_db
 from app.music.artist_models import Artist
 from app.music.youtube_artist_stats_schemas import (
+    YouTubeArtistProfileResponse,
     YouTubeLatestVideosResponse,
     YouTubeMostLikedVideosResponse,
     YouTubeMostViewedVideosResponse,
