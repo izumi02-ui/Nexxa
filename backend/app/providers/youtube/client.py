@@ -231,6 +231,42 @@ class YouTubeClient:
             url=f"https://www.youtube.com/channel/{resolved_channel_id}",
             public_video_count=public_video_count,
         )
+    async def get_channel_topics(
+        self,
+        channel_id: str,
+    ) -> list[str] | None:
+        """Retrieve the topic category URLs for a YouTube channel."""
+        if not channel_id.strip():
+            return None
+
+        response = await self._request(
+            "channels",
+            {
+                "key": self._api_key,
+                "part": "topicDetails",
+                "id": channel_id.strip(),
+            },
+        )
+
+        data = response.json()
+        items = data.get("items", [])
+
+        if not items:
+            return None
+
+        item = items[0]
+
+        if item.get("id") != channel_id.strip():
+            return None
+
+        topic_details = item.get("topicDetails", {})
+        categories = topic_details.get("topicCategories", [])
+
+        return [
+            category
+            for category in categories
+            if isinstance(category, str) and category.strip()
+        ]
 
     async def get_channel_videos_by_views(
         self,
