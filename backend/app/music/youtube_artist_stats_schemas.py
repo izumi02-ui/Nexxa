@@ -89,3 +89,15 @@ class YouTubeLatestVideosResponse(BaseModel):
     channel_id: str
     videos: list[YouTubeLatestVideo]
     next_page_token: str | None = None
+
+
+class YouTubeVideoViewCountResponse(BaseModel):
+    """Public view count for one video belonging to an artist channel."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    artist_id: int = Field(gt=0)
+    channel_id: str
+    video_id: str
+    title: str
+    view_count: int | None = Field(default=None, ge=0)
