@@ -56,6 +56,7 @@ def save_youtube_total_views(
         db.add(stats)
     else:
         stats.total_views = total_views
+        stats.statistics_fetched_at = datetime.now(timezone.utc)
 
     db.flush()
     return stats
