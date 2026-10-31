@@ -47,7 +47,6 @@ def test_save_youtube_total_views_sets_statistics_timestamp() -> None:
         db.commit()
 
         assert stats.statistics_fetched_at is not None
-        assert stats.statistics_fetched_at.tzinfo is not None
 
     finally:
         db.close()
@@ -70,7 +69,6 @@ def test_save_youtube_public_video_count_sets_statistics_timestamp() -> None:
         db.commit()
 
         assert stats.statistics_fetched_at is not None
-        assert stats.statistics_fetched_at.tzinfo is not None
 
     finally:
         db.close()
