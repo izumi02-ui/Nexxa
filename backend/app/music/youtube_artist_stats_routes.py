@@ -10,6 +10,7 @@ from app.music.youtube_artist_stats_schemas import (
     YouTubeMostViewedVideosResponse,
     YouTubePublicVideoCountResponse,
     YouTubeTotalViewsResponse,
+    YouTubeVideoLikeCountResponse,
     YouTubeVideoViewCountResponse,
 )
 from app.music.youtube_artist_stats_service import (
