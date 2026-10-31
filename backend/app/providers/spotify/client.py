@@ -7,7 +7,6 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-
 SPOTIFY_API_BASE_URL = "https://api.spotify.com/v1"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 
@@ -58,7 +57,6 @@ class SpotifyClient:
     ) -> None:
         self.client_id = client_id
         self.client_secret = client_secret
-
         self._access_token: str | None = None
         self._token_expires_at: float = 0.0
 
@@ -73,8 +71,6 @@ class SpotifyClient:
         ):
             logger.debug("Using cached Spotify access token.")
             return self._access_token
-
-        logger.debug("Requesting a new Spotify access token.")
 
         token = await self.get_client_credentials_token()
 
@@ -92,15 +88,11 @@ class SpotifyClient:
     ) -> SpotifyToken:
         """Request an application access token from Spotify."""
 
-        logger.debug("Requesting Spotify client-credentials token.")
-
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     SPOTIFY_TOKEN_URL,
-                    data={
-                        "grant_type": "client_credentials",
-                    },
+                    data={"grant_type": "client_credentials"},
                     auth=(
                         self.client_id,
                         self.client_secret,
@@ -123,9 +115,6 @@ class SpotifyClient:
         try:
             data = response.json()
         except ValueError as exc:
-            logger.error(
-                "Spotify token service returned invalid JSON."
-            )
             raise SpotifyAPIError(
                 "Spotify returned invalid token response data."
             ) from exc
@@ -251,6 +240,98 @@ class SpotifyClient:
         if not isinstance(data, dict):
             raise SpotifyAPIError(
                 "Spotify returned an invalid artist response."
+            )
+
+        return data
+
+    async def get_artist_albums(
+        self,
+        external_id: str,
+        include_groups: str = "album,single",
+        limit: int = 50,
+        offset: int = 0,
+        market: str | None = None,
+    ) -> dict:
+        """Retrieve an artist's albums and/or singles from Spotify."""
+
+        external_id = external_id.strip()
+
+        if not external_id:
+            raise SpotifyAPIError(
+                "Spotify artist ID cannot be empty."
+            )
+
+        allowed_groups = {
+            "album",
+            "single",
+            "compilation",
+            "appears_on",
+        }
+
+        groups = [
+            group.strip()
+            for group in include_groups.split(",")
+            if group.strip()
+        ]
+
+        if not groups or any(
+            group not in allowed_groups
+            for group in groups
+        ):
+            raise SpotifyAPIError(
+                "Invalid Spotify artist album groups."
+            )
+
+        limit = min(max(limit, 1), 50)
+        offset = max(offset, 0)
+
+        params = {
+            "include_groups": ",".join(groups),
+            "limit": limit,
+            "offset": offset,
+        }
+
+        if market:
+            params["market"] = market.strip().upper()
+
+        access_token = await self.get_access_token()
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    (
+                        f"{SPOTIFY_API_BASE_URL}/artists/"
+                        f"{external_id}/albums"
+                    ),
+                    params=params,
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                    },
+                    timeout=15.0,
+                )
+        except httpx.HTTPError as exc:
+            logger.exception(
+                "Spotify artist albums request failed."
+            )
+            raise SpotifyAPIError(
+                "Unable to connect to Spotify artist albums service."
+            ) from exc
+
+        self._raise_for_status(
+            response,
+            operation="Spotify artist albums request",
+        )
+
+        try:
+            data = response.json()
+        except ValueError as exc:
+            raise SpotifyAPIError(
+                "Spotify returned invalid artist albums response data."
+            ) from exc
+
+        if not isinstance(data, dict):
+            raise SpotifyAPIError(
+                "Spotify returned an invalid artist albums response."
             )
 
         return data
