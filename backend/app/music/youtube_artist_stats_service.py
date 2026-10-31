@@ -122,9 +122,10 @@ def save_youtube_public_video_count(
     )
 
     if stats is None:
-        stats = YouTubeArtistStats(
+                stats = YouTubeArtistStats(
             artist_id=artist_id,
             public_video_count=public_video_count,
+            statistics_fetched_at=datetime.now(timezone.utc),
         )
         db.add(stats)
     else:
