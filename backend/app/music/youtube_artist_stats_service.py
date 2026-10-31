@@ -48,9 +48,10 @@ def save_youtube_total_views(
     )
 
     if stats is None:
-        stats = YouTubeArtistStats(
+                stats = YouTubeArtistStats(
             artist_id=artist_id,
             total_views=total_views,
+            statistics_fetched_at=datetime.now(timezone.utc),
         )
         db.add(stats)
     else:
