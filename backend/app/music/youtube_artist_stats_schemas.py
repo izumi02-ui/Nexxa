@@ -41,3 +41,27 @@ class YouTubeMostViewedVideosResponse(BaseModel):
     channel_id: str
     videos: list[YouTubeMostViewedVideo]
     next_page_token: str | None = None
+
+
+class YouTubeMostLikedVideo(BaseModel):
+    """A YouTube video with its public like count."""
+
+    video_id: str
+    title: str
+    channel_name: str
+    description: str
+    thumbnail_url: str | None = None
+    duration: str | None = None
+    url: str
+    like_count: int | None = Field(default=None, ge=0)
+
+
+class YouTubeMostLikedVideosResponse(BaseModel):
+    """Candidate videos sorted by available public like counts."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    artist_id: int = Field(gt=0)
+    channel_id: str
+    videos: list[YouTubeMostLikedVideo]
+    next_page_token: str | None = None
