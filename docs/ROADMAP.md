@@ -87,7 +87,7 @@
     - [x] YouTube most viewed songs/videos
     - [x] YouTube most liked songs/videos
     - [x] YouTube latest songs/videos
-    - [ ] YouTube per-video view count
+    - [x] YouTube per-video view count
     - [ ] YouTube per-video like count
     - [ ] YouTube per-video comment count
     - [ ] External YouTube URL / Artist ID
