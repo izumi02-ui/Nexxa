@@ -10,6 +10,7 @@ from app.music.youtube_artist_stats_schemas import (
     YouTubeMostViewedVideosResponse,
     YouTubePublicVideoCountResponse,
     YouTubeTotalViewsResponse,
+    YouTubeVideoViewCountResponse,
 )
 from app.music.youtube_artist_stats_service import (
     get_youtube_channel_id,
@@ -31,10 +32,6 @@ router = APIRouter(
     "/{artist_id}/youtube/total-views",
     response_model=YouTubeTotalViewsResponse,
     summary="Refresh YouTube channel total views",
-    description=(
-        "Fetch the channel's current total views and save them "
-        "against the canonical NEXXA artist."
-    ),
     responses={
         404: {"description": "Artist or YouTube channel mapping not found"},
         502: {"description": "YouTube API request failed"},
@@ -104,10 +101,6 @@ async def refresh_youtube_total_views(
     "/{artist_id}/youtube/public-video-count",
     response_model=YouTubePublicVideoCountResponse,
     summary="Refresh YouTube public video count",
-    description=(
-        "Fetch the channel's public video count and save it "
-        "against the canonical NEXXA artist."
-    ),
     responses={
         404: {"description": "Artist or YouTube channel mapping not found"},
         502: {"description": "YouTube API request failed"},
@@ -245,11 +238,6 @@ async def get_youtube_most_viewed_videos(
     "/{artist_id}/youtube/most-liked-videos",
     response_model=YouTubeMostLikedVideosResponse,
     summary="Get an artist's videos sorted by public like count",
-    description=(
-        "Returns candidate videos discovered through YouTube search, "
-        "sorted by their available public like counts. YouTube does not "
-        "provide a search order for global like count rankings."
-    ),
     responses={
         404: {"description": "Artist or YouTube channel mapping not found"},
         502: {"description": "YouTube API request failed"},
@@ -379,4 +367,71 @@ async def get_youtube_latest_videos(
         channel_id=channel_id,
         videos=videos,
         next_page_token=next_page_token,
+    )
+
+
+@router.get(
+    "/{artist_id}/youtube/videos/{video_id}/view-count",
+    response_model=YouTubeVideoViewCountResponse,
+    summary="Get the public view count for one artist video",
+    responses={
+        404: {"description": "Artist, channel, or video not found"},
+        502: {"description": "YouTube API request failed"},
+        503: {"description": "YouTube API key is not configured"},
+    },
+)
+async def get_youtube_video_view_count(
+    artist_id: int,
+    video_id: str,
+    db: Session = Depends(get_db),
+) -> YouTubeVideoViewCountResponse:
+    artist = db.get(Artist, artist_id)
+
+    if artist is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Artist not found",
+        )
+
+    channel_id = get_youtube_channel_id(db=db, artist_id=artist_id)
+
+    if channel_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="YouTube channel mapping not found",
+        )
+
+    api_key = get_settings().youtube_api_key
+
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="YouTube API key is not configured",
+        )
+
+    client = YouTubeClient(api_key=api_key)
+
+    try:
+        video = await client.get_channel_video_view_count(
+            channel_id=channel_id,
+            video_id=video_id,
+        )
+    except YouTubeAPIError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Unable to retrieve YouTube video statistics",
+        ) from exc
+
+    if video is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Video not found for this artist's YouTube channel",
+        )
+
+    return YouTubeVideoViewCountResponse(
+        artist_id=artist_id,
+        channel_id=channel_id,
+        video_id=video["video_id"],
+        title=video["title"],
+        view_count=video["view_count"],
     )
