@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 
 from app.music.artist_models import Artist
 from app.music.artist_provider_models import ArtistProviderProfile
