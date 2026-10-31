@@ -89,7 +89,7 @@
     - [x] YouTube latest songs/videos
     - [x] YouTube per-video view count
     - [x] YouTube per-video like count
-    - [ ] YouTube per-video comment count
+    - [x] YouTube per-video comment count
     - [ ] External YouTube URL / Artist ID
     - [ ] YouTube channel topics/categories
     - [ ] YouTube statistics timestamp
