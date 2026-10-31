@@ -436,3 +436,69 @@ async def get_youtube_video_view_count(
         title=video["title"],
         view_count=video["view_count"],
     )
+
+@router.get(
+    "/{artist_id}/youtube/videos/{video_id}/like-count",
+    response_model=YouTubeVideoLikeCountResponse,
+    summary="Get the public like count for one artist video",
+    responses={
+        404: {"description": "Artist, channel, or video not found"},
+        502: {"description": "YouTube API request failed"},
+        503: {"description": "YouTube API key is not configured"},
+    },
+)
+async def get_youtube_video_like_count(
+    artist_id: int,
+    video_id: str,
+    db: Session = Depends(get_db),
+) -> YouTubeVideoLikeCountResponse:
+    artist = db.get(Artist, artist_id)
+
+    if artist is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Artist not found",
+        )
+
+    channel_id = get_youtube_channel_id(db=db, artist_id=artist_id)
+
+    if channel_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="YouTube channel mapping not found",
+        )
+
+    api_key = get_settings().youtube_api_key
+
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="YouTube API key is not configured",
+        )
+
+    client = YouTubeClient(api_key=api_key)
+
+    try:
+        video = await client.get_channel_video_like_count(
+            channel_id=channel_id,
+            video_id=video_id,
+        )
+    except YouTubeAPIError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Unable to retrieve YouTube video statistics",
+        ) from exc
+
+    if video is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Video not found for this artist's YouTube channel",
+        )
+
+    return YouTubeVideoLikeCountResponse(
+        artist_id=artist_id,
+        channel_id=channel_id,
+        video_id=video["video_id"],
+        title=video["title"],
+        like_count=video["like_count"],
+    )
