@@ -58,6 +58,34 @@ def save_youtube_total_views(
     db.flush()
     return stats
 
+def get_youtube_channel_profile(
+    db: Session,
+    artist_id: int,
+) -> dict[str, str] | None:
+    """Return the mapped YouTube channel ID and external URL."""
+    artist = db.get(Artist, artist_id)
+
+    if artist is None:
+        return None
+
+    profile = db.scalar(
+        select(ArtistProviderProfile).where(
+            ArtistProviderProfile.artist_id == artist_id,
+            ArtistProviderProfile.provider == "youtube",
+        )
+    )
+
+    if profile is None:
+        return None
+
+    external_url = profile.external_url or (
+        f"https://www.youtube.com/channel/{profile.external_id}"
+    )
+
+    return {
+        "channel_id": profile.external_id,
+        "external_url": external_url,
+    }
 
 def get_youtube_total_views(
     db: Session,
