@@ -123,3 +123,12 @@ class YouTubeVideoCommentCountResponse(BaseModel):
     video_id: str
     title: str
     comment_count: int | None = Field(default=None, ge=0)
+
+class YouTubeArtistProfileResponse(BaseModel):
+    """External YouTube identity for a NEXXA artist."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    artist_id: int = Field(gt=0)
+    channel_id: str
+    external_url: str
